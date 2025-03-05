@@ -1,7 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 .App {
   text-align: center;
 }
+.moving-paragraph {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 1s ease-out, transform 1s ease-out;
+}
 
+.moving-paragraph.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 .App-logo {
   height: 40vmin;
   pointer-events: none;
