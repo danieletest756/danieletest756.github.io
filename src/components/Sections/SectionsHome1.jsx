@@ -31,7 +31,7 @@ const Sectionhome1 = () => {
         }
       }, []); // Solo al primo render
   return (
-    <div className="bg-[#808473] flex flex-col md:flex-row items-center justify-center min-h-[60vh] p-8 text-white">
+    <div id="storia" className="bg-[#808473] flex flex-col md:flex-row items-center justify-center min-h-[60vh] p-8 text-white">
       {/* Left Section - Text */}
       <div className="md:w-1/2 text-center md:text-left flex flex-col items-center md:items-start  moving-paragraph">
         <h1 className="text-4xl md:text-5xl font-bold text-black">LA STORIA</h1>

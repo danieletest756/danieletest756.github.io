@@ -27,7 +27,7 @@ const Sectionhome2 = () => {
     }
   }, []);
   return (
-    <div className="bg-[#808473] flex flex-col md:flex-row-reverse items-center justify-center min-h-[60vh] p-16 text-white">
+    <div id="chi-siamo" className="bg-[#808473] flex flex-col md:flex-row-reverse items-center justify-center min-h-[60vh] p-16 text-white">
       {/* Right Section - Text */}
       <div className="md:w-1/2 text-center md:text-left flex flex-col items-center md:items-end md:ml-16 moving-paragraph">
         <h1 className="text-4xl md:text-5xl font-bold text-left text-black">CHI SIAMO</h1>

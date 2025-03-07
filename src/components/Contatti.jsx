@@ -45,7 +45,7 @@ const ContactDetails = () => {
   };
 
   return (
-    <div className="bg-[#808473] min-h-screen flex items-center justify-center p-6">
+    <div  id="contatti" className="bg-[#808473] min-h-screen flex items-center justify-center p-6">
       <div className="bg-white shadow-lg rounded-lg p-6 md:w-[70%] mx-auto max-w-full">
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Dettagli dei Contatti</h2>
         <div className="space-y-4 mb-6">
