@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
-import bottiglia from "../../assets/fratelli.png";
+import abruzzo from "../../assets/abruzzo.jpg";
 
-const Sectionhome2 = () => {
+const Sectionhome4 = () => {
   useEffect(() => {
     const elements = document.querySelectorAll(".moving-paragraph");
 
@@ -29,27 +29,30 @@ const Sectionhome2 = () => {
   return (
     <div className="bg-[#808473] flex flex-col md:flex-row-reverse items-center justify-center min-h-[60vh] p-16 text-white">
       {/* Right Section - Text */}
-      <div className="md:w-1/2 text-center md:text-left flex flex-col items-center md:items-end md:ml-16 moving-paragraph">
-        <h1 className="text-4xl md:text-5xl font-bold text-left text-black">CHI SIAMO</h1>
+      <div className="md:w-1/2 text-center md:text-left flex flex-col items-center  md:ml-16 moving-paragraph">
+        <h1 className="text-4xl md:text-5xl font-bold text-left text-black">
+          TERRITORIO
+        </h1>
         <h2 className="italic text-lg md:text-xl mt-2 text-left font-bold">
-         Tenute Colonico
+          Abbruzzo
         </h2>
-        <p className="mt-4 text-sm md:text-base max-w-md text-left">
-          La Tenuta Colonico è gestita con passione e dedizione da due fratelli,
-          che da anni lavorano insieme per portare avanti la tradizione
-          familiare nella produzione di olio d'oliva. Unendo esperienza, amore
-          per la terra e impegno quotidiano, si occupano di ogni fase del
-          processo, dalla coltivazione degli ulivi alla trasformazione delle
-          olive, per offrire un olio di alta qualità che rappresenta il frutto
-          del loro lavoro e della loro passione.
+        <p className="mt-4 text-sm md:text-base max-w-md text-center">
+          L'Abruzzo, ricco di storia, tradizioni e paesaggi incontaminati, è il
+          luogo ideale per la coltivazione dell'olivo. Il nostro olio nasce in
+          un ambiente unico, con un clima mite, influenzato dal mare Adriatico e
+          protetto dalle montagne. I terreni fertili e ricchi di minerali
+          assicurano una produzione di altissima qualità. La nostra filosofia si
+          basa sulla sostenibilità, utilizzando metodi agricoli rispettosi
+          dell'ambiente e minimizzando l'uso di pesticidi. Ogni goccia del
+          nostro olio racconta il legame con questa terra straordinaria.
         </p>
       </div>
 
       {/* Left Section - Single Image */}
-      <div className="md:w-1/4 flex justify-center mt-6 md:mt-0 moving-paragraph">
-        <div className="w-3/4">
+      <div className="md:w-1/2 flex justify-center mt-6 md:mt-0 moving-paragraph">
+        <div className="">
           <img
-            src={bottiglia}
+            src={abruzzo}
             alt="Piatto raffinato"
             className="w-full h-auto rounded-lg shadow-lg"
           />
@@ -59,4 +62,4 @@ const Sectionhome2 = () => {
   );
 };
 
-export default Sectionhome2;
+export default Sectionhome4;

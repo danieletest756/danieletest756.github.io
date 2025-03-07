@@ -5,12 +5,19 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: ui-sans-serif;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+/* Per WebKit (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  display: none;
+}
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

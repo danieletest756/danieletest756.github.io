@@ -16,12 +16,15 @@
   }
   
   .content {
-    position: relative;
+ /*    position: relative;
     z-index: 1;
     color: white;
     text-align: center;
     top: 15%;
     transform: translateY(-50%);
-    justify-items: anchor-center;
+    place-self: center; */
+    display: flex;
+    justify-content: center;
+    padding-top: 20px;
   }
   

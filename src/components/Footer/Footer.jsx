@@ -1,6 +1,6 @@
 import React from 'react';
 import { FaFacebook, FaInstagram, FaEnvelope } from 'react-icons/fa'; // Icone per social e mail
-import logo  from '../../assets/logoverde.png'
+import logo  from '../../assets/logo bianco.png'
 import './Footer.css';
 
 const Footer = () => {
@@ -10,7 +10,7 @@ const Footer = () => {
         {/* Lato sinistro: Logo e scritta */}
         <div className="footer-logo">
           <img src={logo} alt="Logo Tenute Colonico" className="footer-logo-img" />
-          <p>Tenute Colonico srl</p>
+          {/* <p>Tenute Colonico srl</p> */}
         </div>
 
         {/* Lato centrale: Icone social e mail */}

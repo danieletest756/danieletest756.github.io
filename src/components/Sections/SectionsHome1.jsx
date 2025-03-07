@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import bottiglia from "../../assets/logonero completo.png";
+import storia from "../../assets/storia.jpg";
 
 const Sectionhome1 = () => {
 
@@ -34,8 +34,8 @@ const Sectionhome1 = () => {
     <div className="bg-[#808473] flex flex-col md:flex-row items-center justify-center min-h-[60vh] p-8 text-white">
       {/* Left Section - Text */}
       <div className="md:w-1/2 text-center md:text-left flex flex-col items-center md:items-start  moving-paragraph">
-        <h1 className="text-4xl md:text-5xl font-bold">LA STORIA</h1>
-        <h2 className="italic text-lg md:text-xl mt-2">Tenute Colonico</h2>
+        <h1 className="text-4xl md:text-5xl font-bold text-black">LA STORIA</h1>
+        <h2 className="italic text-lg md:text-xl mt-2 font-bold">Tenute Colonico</h2>
         <p className="mt-4 text-sm md:text-base max-w-md">
           La Tenuta Colonico, situata in Abruzzo, è un'azienda agricola che da
           generazioni si dedica con passione alla coltivazione degli ulivi. Le
@@ -51,9 +51,9 @@ const Sectionhome1 = () => {
       <div className="md:w-1/4 flex justify-center mt-6 md:mt-0  moving-paragraph">
         <div className="w-3/4">
           <img
-            src={bottiglia}
+            src={storia}
             alt="Piatto raffinato"
-            className="w-full h-auto rounded-lg shadow-lg"
+            className="w-full h-auto rounded-lg "
           />
         </div>
       </div>

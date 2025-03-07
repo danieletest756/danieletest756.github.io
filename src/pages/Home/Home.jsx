@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import "./Home.css";
 import videoBackground from "../../assets/background2.mp4";
-import logonero from "../../assets/logonero.png";
+import logonero from "../../assets/logo nero.png";
 
 const Home = () => {
   useEffect(() => {
