@@ -1,18 +1,25 @@
 {
   "files": {
-    "main.css": "/static/css/main.2f2443c5.css",
-    "main.js": "/static/js/main.2eaeee05.js",
+    "main.css": "/static/css/main.e04361a4.css",
+    "main.js": "/static/js/main.5fb49c53.js",
     "static/js/453.8ca46fb4.chunk.js": "/static/js/453.8ca46fb4.chunk.js",
     "static/media/test2.gif": "/static/media/test2.a9b8b3f47335262852e4.gif",
     "static/media/test4.gif": "/static/media/test4.d369a225d71b78d3051b.gif",
+    "static/media/test2-ezgif.com-crop.gif": "/static/media/test2-ezgif.com-crop.ac7c6399bb04a7272af8.gif",
     "static/media/test1.gif": "/static/media/test1.909e698a82e766f4ede0.gif",
     "static/media/test7.gif": "/static/media/test7.fc9c10114901304b7b90.gif",
+    "static/media/test7-ezgif.com-crop.gif": "/static/media/test7-ezgif.com-crop.3eb6dca86e8e15778123.gif",
+    "static/media/test4-ezgif.com-crop.gif": "/static/media/test4-ezgif.com-crop.9a01df25f1a5dbc0f56f.gif",
+    "static/media/test1-ezgif.com-crop.gif": "/static/media/test1-ezgif.com-crop.ac5a044130c38cd483ab.gif",
     "static/media/test5.gif": "/static/media/test5.c376b8ebb163db370db0.gif",
     "static/media/5.jpg": "/static/media/5.5f52d935a473036d140f.jpg",
+    "static/media/test5-ezgif.com-crop.gif": "/static/media/test5-ezgif.com-crop.c3e00afd81766717c786.gif",
     "static/media/matrimoni4.jpg": "/static/media/matrimoni4.038bb346a3cfb7bdab31.jpg",
     "static/media/test6.gif": "/static/media/test6.3d4e9bbcdc94b5c1c4e0.gif",
+    "static/media/test6-ezgif.com-crop.gif": "/static/media/test6-ezgif.com-crop.9969380ce71f22b1684f.gif",
     "static/media/matrimoni3.jpg": "/static/media/matrimoni3.5c56a34a7dff3adc5b06.jpg",
     "static/media/test8.gif": "/static/media/test8.5fc3321070b0d92a7de0.gif",
+    "static/media/test8-ezgif.com-crop.gif": "/static/media/test8-ezgif.com-crop.920f41c860fe8a2936bc.gif",
     "static/media/test3.gif": "/static/media/test3.e50064ab33e5bce071d5.gif",
     "static/media/Porte garage interna.jpg": "/static/media/Porte garage interna.42cecc02b198f25c51dc.jpg",
     "static/media/Porte per garage.jpg": "/static/media/Porte per garage.752acd6fe226eeca4c5b.jpg",
@@ -79,12 +86,12 @@
     "static/media/slick.ttf": "/static/media/slick.c94f7671dcc99dce43e2.ttf",
     "static/media/slick.woff": "/static/media/slick.295183786cd8a1389865.woff",
     "index.html": "/index.html",
-    "main.2f2443c5.css.map": "/static/css/main.2f2443c5.css.map",
-    "main.2eaeee05.js.map": "/static/js/main.2eaeee05.js.map",
+    "main.e04361a4.css.map": "/static/css/main.e04361a4.css.map",
+    "main.5fb49c53.js.map": "/static/js/main.5fb49c53.js.map",
     "453.8ca46fb4.chunk.js.map": "/static/js/453.8ca46fb4.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.2f2443c5.css",
-    "static/js/main.2eaeee05.js"
+    "static/css/main.e04361a4.css",
+    "static/js/main.5fb49c53.js"
   ]
 }
