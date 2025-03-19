@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/static/css/main.aa65d4cc.css",
-    "main.js": "/static/js/main.ac0d963e.js",
+    "main.css": "/static/css/main.395d3b9f.css",
+    "main.js": "/static/js/main.3171212f.js",
     "static/js/453.8ca46fb4.chunk.js": "/static/js/453.8ca46fb4.chunk.js",
     "static/media/test2.gif": "/static/media/test2.a9b8b3f47335262852e4.gif",
     "static/media/test4.gif": "/static/media/test4.d369a225d71b78d3051b.gif",
@@ -26,6 +26,7 @@
     "static/media/arredo5.jpg": "/static/media/arredo5.28f29a82c2043b3e9748.jpg",
     "static/media/arredo6.jpg": "/static/media/arredo6.79ff0ef1d8fd159d5a02.jpg",
     "static/media/arredo9.jpg": "/static/media/arredo9.85d8907232f37c208d7c.jpg",
+    "static/media/backgroun2.jpg": "/static/media/backgroun2.e8e36370e5989cc27c50.jpg",
     "static/media/arredo10.jpg": "/static/media/arredo10.181cdf400995316f9d73.jpg",
     "static/media/idea6.jpg": "/static/media/idea6.25d99c82d60f63a974e8.jpg",
     "static/media/idea7.jpg": "/static/media/idea7.afcf627ec556b0e26af3.jpg",
@@ -86,12 +87,12 @@
     "static/media/slick.ttf": "/static/media/slick.c94f7671dcc99dce43e2.ttf",
     "static/media/slick.woff": "/static/media/slick.295183786cd8a1389865.woff",
     "index.html": "/index.html",
-    "main.aa65d4cc.css.map": "/static/css/main.aa65d4cc.css.map",
-    "main.ac0d963e.js.map": "/static/js/main.ac0d963e.js.map",
+    "main.395d3b9f.css.map": "/static/css/main.395d3b9f.css.map",
+    "main.3171212f.js.map": "/static/js/main.3171212f.js.map",
     "453.8ca46fb4.chunk.js.map": "/static/js/453.8ca46fb4.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.aa65d4cc.css",
-    "static/js/main.ac0d963e.js"
+    "static/css/main.395d3b9f.css",
+    "static/js/main.3171212f.js"
   ]
 }
