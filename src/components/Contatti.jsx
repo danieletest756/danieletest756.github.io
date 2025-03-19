@@ -1,170 +1,109 @@
 import React, { useState } from "react";
 import emailjs from "emailjs-com";
-import logo from "../assets/logo nero.png"
-const ContactDetails = () => {
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    phone: "",
-    email: "",
-    description: "",
-  });
-  const [status, setStatus] = useState(""); // "sending", "success", "error"
+import loading from "../assets/loading.gif"
+import successo from "../assets/invio riuscito.png"
+import fallito from "../assets/invio non riuscito.png"
+const ContactForm = () => {
+  const [formData, setFormData] = useState({ name: "", email: "", message: "" });
+  const [status, setStatus] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    // Validazione dei campi
-    if (!formData.firstName || !formData.lastName || !formData.phone || !formData.email || !formData.description) {
-      setErrorMessage("Tutti i campi sono obbligatori.");
+    if (!formData.name || !formData.email || formData.message.length < 10) {
+      setErrorMessage("Tutti i campi sono obbligatori e il messaggio deve avere almeno 10 caratteri.");
       return;
     }
-
     setStatus("sending");
-    emailjs
-      .send("your_service_id", "your_template_id", formData, "your_user_id")
-      .then(
-        (response) => {
-          setStatus("success");
-          setErrorMessage(""); // Resetta eventuali errori
-        },
-        (error) => {
-          setStatus("error");
-          setErrorMessage("Errore nell'invio del messaggio. Riprova più tardi.");
-        }
-      );
+    setErrorMessage("");
+
+    //emailjs.send("your_service_id", "your_template_id", formData, "your_user_id")
+    emailjs.send("service_ufn07wj", "template_oow4yfl", formData, "kUKFRip13HUcba4s_")
+      .then(() => setStatus("success"))
+      .catch(() => {
+        setStatus("error");
+        setErrorMessage("Errore nell'invio del messaggio. Riprova più tardi.");
+      });
   };
 
   return (
-    <div  id="contatti" className="bg-[#808473] min-h-screen flex items-center justify-center p-6">
-      <div className="bg-white shadow-lg rounded-lg p-6 md:w-[70%] mx-auto max-w-full">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Dettagli dei Contatti</h2>
-        <div className="space-y-4 mb-6">
-          <div>
-            <h3 className="text-xl font-semibold text-gray-700">Tenute Colonico Srl</h3>
-            {/* <p className="text-gray-600">Tenute Colonico</p> */}
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold text-gray-700">Email</h3>
-            <p className="text-gray-600">info@tenutecolonico.it</p>
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold text-gray-700">Indirizzo</h3>
-            <p className="text-gray-600">Via Giuseppe de Blasiis, 1 67039 Sulmona AQ</p>
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold text-gray-700">Recapiti Telefonici</h3>
-            <div className="flex flex-col space-y-2">
-              <p className="text-gray-600">Mario Colonico - 347 1037125</p>
-              <p className="text-gray-600">Alessandro Colonico - 392 5718098</p>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold text-gray-700">Sito Web</h3>
-            <a href="https://www.tenutecolonico.it" className="text-blue-500 hover:underline">
-              www.tenutecolonico.it
-            </a>
-          </div>
+    <div id="contatti" className="bg-[whitesmoke] text-center flex flex-col items-center justify-center p-6 w-full"><h1 className="text-4xl font-bold text-gray-800">CONTATTI</h1>
+      <div className="w-full max-w-5xl flex flex-col md:flex-row justify-between p-6">
+        {/* Contatti */}
+        <div className="w-full md:w-1/2 p-6">
+          <h2 className="text-2xl font-bold text-gray-800">YA&V Project Engineering srls
+          </h2>
+          <p className="text-gray-700"><b>Email</b> - yav.project@gmail.com</p>
+          <p className="text-gray-700"><b>Indirizzo</b>- Via Pretoro 15 , 00132 Roma</p>
+          <p className="text-gray-600"><b>Ufficio</b> - 06 22 61 741</p>
+          <p className="text-gray-600"><b>P.I./C.F. </b> - 13977941007</p>
         </div>
 
-        {status === "success" ? (
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Grazie per averci contattato!</h2>
-            <img
-              src={logo} // Sostituisci con l'immagine che preferisci
-              alt="Thank You"
-              className="mx-auto mb-4"
-            />
-            <p className="text-gray-600">Il tuo messaggio è stato inviato con successo. Ti risponderemo il prima possibile.</p>
-          </div>
-        ) : status === "error" ? (
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Ops, c'è stato un errore!</h2>
-            <p className="text-red-600">{errorMessage}</p>
-          </div>
-        ) : (
-          <div>
-            <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Oppure Contattaci</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="firstName" className="text-xl font-semibold text-gray-700">Nome</label>
+        {/* Stato della Form */}
+        <div className="w-full md:w-1/2 p-6">
+          {status === "idle"  ? (
+            <>
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">CONTATTACI</h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <input
                   type="text"
-                  id="firstName"
-                  name="firstName"
-                  value={formData.firstName}
+                  name="name"
+                  placeholder="Nome e Cognome"
+                  value={formData.name}
                   onChange={handleChange}
                   className="w-full p-3 border border-gray-300 rounded-lg"
                 />
-              </div>
-              <div>
-                <label htmlFor="lastName" className="text-xl font-semibold text-gray-700">Cognome</label>
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label htmlFor="phone" className="text-xl font-semibold text-gray-700">Recapito Telefonico</label>
-                <input
-                  type="text"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label htmlFor="email" className="text-xl font-semibold text-gray-700">Email</label>
                 <input
                   type="email"
-                  id="email"
                   name="email"
+                  placeholder="Email"
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full p-3 border border-gray-300 rounded-lg"
                 />
-              </div>
-              <div>
-                <label htmlFor="description" className="text-xl font-semibold text-gray-700">Descrizione</label>
                 <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
+                  name="message"
+                  placeholder="Messaggio (min. 10 caratteri)"
+                  value={formData.message}
                   onChange={handleChange}
                   className="w-full p-3 border border-gray-300 rounded-lg"
+                  rows="4"
                 />
-              </div>
-
-              {errorMessage && <p className="text-red-600">{errorMessage}</p>}
-
-              <button
-                type="submit"
-                className="w-full p-3 bg-blue-500 text-white font-semibold rounded-lg"
-                disabled={status === "sending"}
-              >
-                {status === "sending" ? "Invio in corso..." : "Invia Messaggio"}
-              </button>
-            </form>
-          </div>
-        )}
+                {errorMessage && <p className="text-red-600">{errorMessage}</p>}
+                <button
+                  type="submit"
+                  className="w-full p-3 bg-[#D1A969] text-white font-semibold rounded-lg"
+                  disabled={status === "sending"}
+                >
+                  Invia
+                </button>
+              </form>
+            </>
+          ) : status === "sending" ? (
+            <div className="flex flex-col items-center">
+              <p className="text-lg font-semibold text-gray-800">Invio in corso...</p>
+              <img src={loading} alt="Invio in corso" className="w-26 h-16 mt-4" />
+            </div>
+          ) : status === "success" ? (
+            <div className="flex flex-col items-center">
+              <p className="text-lg font-semibold text-green-600">Messaggio inviato con successo!</p>
+              <img src={successo} alt="Successo" className="w-16 h-16 mt-4" />
+            </div>
+          ) : status === "error" ? (
+            <div className="flex flex-col items-center">
+              <p className="text-lg text-center font-semibold text-red-600">Errore nell'invio. Riprova più tardi.</p>
+              <img src={fallito} alt="Errore" className="w-16 h-16 mt-4" />
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );
 };
 
-export default ContactDetails;
+export default ContactForm;

@@ -1,61 +1,80 @@
-import React, { useEffect, useState, useRef } from "react";
-import abruzzo from "../../assets/abruzzo.jpg";
+import React, { useState } from "react";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+
+import dipendente1 from "../../assets/Dipendenti/test1.gif";
+import dipendente2 from "../../assets/Dipendenti/test2.gif";
+import dipendente3 from "../../assets/Dipendenti/test3.gif";
+import dipendente4 from "../../assets/Dipendenti/test4.gif";
+import dipendente5 from "../../assets/Dipendenti/test5.gif";
+import dipendente6 from "../../assets/Dipendenti/test6.gif";
+import dipendente7 from "../../assets/Dipendenti/test7.gif";
+import dipendente8 from "../../assets/Dipendenti/test8.gif";
+
+const carouselImages = [
+  dipendente1,
+  dipendente3,
+  dipendente7,
+  dipendente2,
+  dipendente4,
+  dipendente5,
+  dipendente6,
+  dipendente8,
+];
 
 const Sectionhome4 = () => {
-  useEffect(() => {
-    const elements = document.querySelectorAll(".moving-paragraph");
+  const [activeIndex, setActiveIndex] = useState(0);
 
-    if (elements.length > 0) {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add("visible");
-            } /*  else {
-                  entry.target.classList.remove("visible");
-                } */
-          });
-        },
-        {
-          threshold: 0.3, // La visibilità minima dell'elemento per attivare la transizione
-        }
-      );
+  const settings = {
+    dots: false,
+    infinite: true,
+    speed: 1000,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    autoplay: true,
+    autoplaySpeed: 4000,
+    arrows: true,
+    adaptiveHeight: true,
+    beforeChange: (oldIndex, newIndex) => setActiveIndex(newIndex), // aggiorna l'indice della slide attiva
+  };
 
-      elements.forEach((element) => observer.observe(element));
-
-      return () => observer.disconnect();
-    }
-  }, []);
   return (
-    <div className="bg-[#808473] flex flex-col md:flex-row-reverse items-center justify-center min-h-[60vh] p-16 text-white">
+    <div
+      id="chi-siamo"
+      className="bg-[#191919] flex flex-col md:flex-row-reverse items-center justify-center min-h-[60vh] p-8 md:p-16 text-white"
+    >
       {/* Right Section - Text */}
-      <div className="md:w-1/2 text-center md:text-left flex flex-col items-center  md:ml-16 moving-paragraph">
-        <h1 className="text-4xl md:text-5xl font-bold text-left text-black">
-          TERRITORIO
+      <div className="md:w-1/2 text-center md:text-left flex flex-col items-center md:items-end moving-paragraph">
+        <h1 className="text-3xl md:text-5xl font-bold text-[#8b0000]">
+          IL NOSTRO TEAM
         </h1>
-        <h2 className="italic text-lg md:text-xl mt-2 text-left font-bold">
-          Abbruzzo
-        </h2>
-        <p className="mt-4 text-sm md:text-base max-w-md text-center">
-          L'Abruzzo, ricco di storia, tradizioni e paesaggi incontaminati, è il
-          luogo ideale per la coltivazione dell'olivo. Il nostro olio nasce in
-          un ambiente unico, con un clima mite, influenzato dal mare Adriatico e
-          protetto dalle montagne. I terreni fertili e ricchi di minerali
-          assicurano una produzione di altissima qualità. La nostra filosofia si
-          basa sulla sostenibilità, utilizzando metodi agricoli rispettosi
-          dell'ambiente e minimizzando l'uso di pesticidi. Ogni goccia del
-          nostro olio racconta il legame con questa terra straordinaria.
+        <p className="mt-4 text-sm md:text-base max-w-md text-left">
+          YA&V Project Engineering srls, fondata nel 2016 dai fratelli Yuri
+          Andrea e Veronica Piastra, affonda le sue radici in una tradizione
+          familiare nel settore meccanico che risale al 1960. L'azienda si
+          distingue per la sua competenza nella progettazione e lavorazione di
+          materie plastiche e metalliche, offrendo soluzioni che spaziano
+          dall’industria al design. Produciamo complementi d’arredo, trofei,
+          medaglie e insegne personalizzate, combinando lavorazioni plastiche e
+          metalliche per realizzare prodotti unici.
         </p>
       </div>
 
-      {/* Left Section - Single Image */}
-      <div className="md:w-1/2 flex justify-center mt-6 md:mt-0 moving-paragraph">
-        <div className="">
-          <img
-            src={abruzzo}
-            alt="Piatto raffinato"
-            className="w-full h-auto rounded-lg shadow-lg"
-          />
+      {/* Left Section - Carousel */}
+      <div className="w-full md:w-1/3 flex justify-center mt-6 md:mt-0 moving-paragraph">
+        <div className="w-full md:w-1/3 min-h-[50vh] flex justify-center mt-6 md:mt-0 moving-paragraph">
+          <Slider {...settings} className="w-[30vh] md:w-[40vh]">
+            {carouselImages.map((image, idx) => (
+              <div key={idx} className="w-full h-auto">
+                <img
+                  src={idx === activeIndex ? image : ""}
+                  //alt={`Carosello Immagine ${idx + 1}`}
+                  className="w-full h-auto object-cover rounded-lg shadow-lg"
+                />
+              </div>
+            ))}
+          </Slider>
         </div>
       </div>
     </div>

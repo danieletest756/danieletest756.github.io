@@ -1,0 +1,82 @@
+import React, { useEffect, useRef } from "react";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+import carosello1 from "../../assets/arredo negozi/arredo1.jpg";
+import carosello2 from "../../assets/arredo negozi/arredo2.jpg";
+import carosello5 from "../../assets/arredo negozi/arredo4.jpg";
+import carosello6 from "../../assets/arredo negozi/arredo5.jpg";
+import carosello7 from "../../assets/arredo negozi/arredo6.jpg";
+import carosello8 from "../../assets/arredo negozi/arredo7.jpg";
+import carosello9 from "../../assets/arredo negozi/arredo8.jpg";
+import carosello10 from "../../assets/arredo negozi/arredo9.jpg";
+import carosello4 from "../../assets/arredo negozi/arredo10.jpg";
+const images = [carosello1, carosello2,  carosello4, carosello5, carosello6, carosello7, carosello8, carosello9, carosello10];
+
+const Sectionhome8 = () => {
+  useEffect(() => {
+    const elements = document.querySelectorAll(".moving-paragraph");
+    if (elements.length > 0) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+            }
+          });
+        },
+        { threshold: 0.3 }
+      );
+      elements.forEach((element) => observer.observe(element));
+      return () => observer.disconnect();
+    }
+  }, []);
+
+  const sliderRef = useRef(null);
+  const settings = {
+    dots: false,
+    infinite: true,
+    speed: 1000,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    autoplay: true,
+    autoplaySpeed: 5000,
+    arrows: true,
+  };
+
+  return (
+    <div
+      className="bg-[#191919] flex flex-col md:flex-row items-center justify-center min-h-[60vh] p-8 text-white"
+    >
+      {/* Left Section - Text */}
+      <div className="md:w-1/2 text-center md:text-left flex flex-col items-center md:items-start moving-paragraph">
+        <h1 className="text-4xl md:text-5xl font-bold text-[#8b0000]">
+          PRODOTTI PLASTICI, ARREDO E DESIGN
+        </h1>
+        <h2 className="italic text-lg md:text-xl mt-2 font-bold">
+          Insegne e Prodotti per Negozi
+        </h2>
+        <p className="mt-4 text-sm md:text-base max-w-md">
+          
+        </p>
+      </div>
+
+      {/* Right Section - Carousel */}
+      <div className="w-full md:w-1/3 flex justify-center mt-6 md:mt-0 moving-paragraph">
+        <Slider {...settings} ref={sliderRef} className="w-[30vh] md:w-[40vh]">
+          {images.map((image, index) => (
+            <div key={index}>
+              <img
+                src={image}
+                alt={`Slide ${index + 1}`}
+                className="w-full h-auto rounded-lg shadow-lg"
+              />
+            </div>
+          ))}
+        </Slider>
+      </div>
+    </div>
+  );
+};
+
+export default Sectionhome8;

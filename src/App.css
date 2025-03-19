@@ -24,7 +24,48 @@
     animation: App-logo-spin infinite 20s linear;
   }
 }
+.custom-arrow1 {
+  z-index: 10;
+  position: absolute;
+  top: 30% !important; /* Regola l'altezza */
+}
 
+.custom-arrow2 {
+  z-index: 10;
+  position: absolute;
+  top: 50% !important; /* Diversa altezza */
+}
+.custom-arrow1,
+.custom-arrow2 {
+  z-index: 10;
+  position: absolute;
+  top: 30%;
+  transform: translateY(-10%);
+  font-size: 2rem;
+  color: white;
+  cursor: pointer;
+}
+
+.custom-arrow1.left,
+.custom-arrow2.left {
+  left: -33px; /* Sposta la freccia sinistra fuori dal carosello */
+}
+
+.custom-arrow1.right,
+.custom-arrow2.right {
+  right: -33px; /* Sposta la freccia destra fuori dal carosello */
+}
+
+.slide-up {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.slide-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 .App-header {
   background-color: #282c34;
   min-height: 100vh;
