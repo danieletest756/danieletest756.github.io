@@ -23,17 +23,22 @@ function App() {
     <div className="App">
       <header /* className="App-header" */>
         <Home />
-        <Sectionhome1 />
-        <Sectionhome2 />
-        <Sectionhome3 />
-        <SectionHome5 />
-        <Sectionhome6 />
-        <Sectionhome7 />
-        <Sectionhome8 />
-        <Sectionhome9 />
+        <div className="backgroundHome">
+          <Sectionhome1 />
+          <Sectionhome2 />
+          <Sectionhome3 />
+          <SectionHome5 />
+          <Sectionhome6 />
+          <Sectionhome7 />
+          <Sectionhome8 />
+          <Sectionhome9 />
+        </div>
         <PartnersSection />
         {/* <Sectionhome4 /> */}
-        <TeamGrid />
+        <div className="backgroundHome">
+          <TeamGrid />
+        </div>
+
         <ContactDetails />
         {/* <Recensioni/> */}
         <Testimonials />

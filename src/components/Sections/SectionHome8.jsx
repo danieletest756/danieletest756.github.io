@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
@@ -11,9 +11,23 @@ import carosello8 from "../../assets/arredo negozi/arredo7.jpg";
 import carosello9 from "../../assets/arredo negozi/arredo8.jpg";
 import carosello10 from "../../assets/arredo negozi/arredo9.jpg";
 import carosello4 from "../../assets/arredo negozi/arredo10.jpg";
-const images = [carosello1, carosello2,  carosello4, carosello5, carosello6, carosello7, carosello8, carosello9, carosello10];
+
+const images = [
+  carosello1,
+  carosello2,
+  carosello4,
+  carosello5,
+  carosello6,
+  carosello7,
+  carosello8,
+  carosello9,
+  carosello10,
+];
 
 const Sectionhome8 = () => {
+  const [modalOpen, setModalOpen] = useState(false);
+  const sliderRef = useRef(null);
+
   useEffect(() => {
     const elements = document.querySelectorAll(".moving-paragraph");
     if (elements.length > 0) {
@@ -32,7 +46,6 @@ const Sectionhome8 = () => {
     }
   }, []);
 
-  const sliderRef = useRef(null);
   const settings = {
     dots: false,
     infinite: true,
@@ -44,26 +57,37 @@ const Sectionhome8 = () => {
     arrows: true,
   };
 
+  const openModal = () => {
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+  };
+
   return (
-    <div
-      className="bg-[#191919] flex flex-col md:flex-row items-center justify-center min-h-[60vh] p-8 text-white"
-    >
+    <div className="bg-[#191919] bg-opacity-60 flex flex-col md:flex-row items-center justify-center min-h-[60vh] p-8 text-white">
       {/* Left Section - Text */}
-      <div className="md:w-1/2 text-center md:text-left flex flex-col items-center md:items-start moving-paragraph">
+      <div className="md:w-1/2 text-center md:text-center flex flex-col items-center md:items-center moving-paragraph">
         <h1 className="text-4xl md:text-5xl font-bold text-[#8b0000]">
           PRODOTTI PLASTICI, ARREDO E DESIGN
         </h1>
         <h2 className="italic text-lg md:text-xl mt-2 font-bold">
           Insegne e Prodotti per Negozi
         </h2>
-        <p className="mt-4 text-sm md:text-base max-w-md">
-          
-        </p>
+        <p className="mt-4 text-sm md:text-base max-w-md"></p>
       </div>
 
       {/* Right Section - Carousel */}
-      <div className="w-full md:w-1/3 flex justify-center mt-6 md:mt-0 moving-paragraph">
-        <Slider {...settings} ref={sliderRef} className="w-[30vh] md:w-[40vh]">
+      <div
+        className="w-full md:w-1/3 flex justify-center mt-6 md:mt-0 moving-paragraph"
+        onClick={openModal}
+      >
+        <Slider
+          {...settings}
+          ref={sliderRef}
+          className="w-[30vh] md:w-[40vh] cursor-pointer"
+        >
           {images.map((image, index) => (
             <div key={index}>
               <img
@@ -75,6 +99,36 @@ const Sectionhome8 = () => {
           ))}
         </Slider>
       </div>
+
+      {modalOpen && (
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50"
+          onClick={closeModal}
+        >
+          <div
+            className="relative p-4 max-w-4xl w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="absolute top-[-1em] right-2 text-white text-3xl"
+              onClick={closeModal}
+            >
+              &times;
+            </button>
+            <Slider {...settings} className="w-[98%] max-w-4xl mx-auto">
+              {images.map((image, index) => (
+                <div key={index} className="w-full h-auto">
+                  <img
+                    src={image}
+                    alt={`Carosello Ingrandito ${index + 1}`}
+                    className="w-full h-auto object-cover rounded-lg shadow-lg"
+                  />
+                </div>
+              ))}
+            </Slider>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

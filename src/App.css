@@ -89,3 +89,12 @@
     transform: rotate(360deg);
   }
 }
+.backgroundHome {
+  background-attachment: fixed;
+  background-image: url(/src/assets/backgroun2.jpg);
+  background-position: 50%;
+  background-repeat: repeat-y;
+  text-align: center;
+  width: 100%;
+  background-size: cover;
+}
