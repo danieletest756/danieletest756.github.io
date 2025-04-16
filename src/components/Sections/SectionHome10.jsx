@@ -1,68 +1,18 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import image1 from "../../assets/eventi/1.jpg";
-import image2 from "../../assets/eventi/2.jpg";
-import image3 from "../../assets/eventi/3.jpg";
-import image4 from "../../assets/eventi/4.jpg";
-import image5 from "../../assets/eventi/5.jpg";
-import image6 from "../../assets/eventi/6.jpg";
-import image7 from "../../assets/eventi/7.jpg";
-import image8 from "../../assets/eventi/8.jpg";
-import image9 from "../../assets/eventi/9.jpg";
-import image10 from "../../assets/eventi/10.jpg";
-import image11 from "../../assets/eventi/11.jpg";
-import image12 from "../../assets/eventi/12.jpg";
-import image13 from "../../assets/eventi/13.jpg";
-import image14 from "../../assets/eventi/14.jpg";
-import image15 from "../../assets/eventi/15.jpg";
-import image16 from "../../assets/eventi/16.jpg";
-import image17 from "../../assets/eventi/17.jpg";
-import image18 from "../../assets/eventi/18.jpg";
-import image19 from "../../assets/eventi/19.jpg";
-import image20 from "../../assets/eventi/20.jpg";
-import image21 from "../../assets/eventi/21.jpg";
-import image22 from "../../assets/eventi/22.jpg";
-import image23 from "../../assets/eventi/23.jpg";
-import image24 from "../../assets/eventi/24.jpg";
-import image25 from "../../assets/eventi/25.jpg";
-import image26 from "../../assets/eventi/26.jpg";
-import image27 from "../../assets/eventi/27.jpg";
-import image28 from "../../assets/eventi/28.jpg";
+import image1 from "../../assets/prodotti unici/1.jpg";
+import image2 from "../../assets/prodotti unici/2.jpg";
+import image3 from "../../assets/prodotti unici/3.jpg";
+import image4 from "../../assets/prodotti unici/4.jpg";
 
-const images = [
-  image1,
-  image2,
-  image3,
-  image4,
-  image5,
-  image6,
-  image7,
-  image8,
-  image9,
-  image10,
-  image11,
-  image12,
-  image13,
-  image14,
-  image15,
-  image16,
-  image17,
-  image18,
-  image19,
-  image20,
-  image21,
-  image22,
-  image23,
-  image24,
-  image25,
-  image26,
-  image27,
-  image28,
-];
+const images = [image1, image2, image3, image4];
 
-const Sectionhome6 = () => {
+const Sectionhome10 = () => {
+  const [modalOpen, setModalOpen] = useState(false);
+  const sliderRef = useRef(null);
+
   useEffect(() => {
     const elements = document.querySelectorAll(".moving-paragraph");
     if (elements.length > 0) {
@@ -81,8 +31,6 @@ const Sectionhome6 = () => {
     }
   }, []);
 
-  const [modalOpen, setModalOpen] = useState(false);
-
   const settings = {
     dots: false,
     infinite: true,
@@ -92,7 +40,6 @@ const Sectionhome6 = () => {
     autoplay: true,
     autoplaySpeed: 5000,
     arrows: true,
-    adaptiveHeight: true,
   };
 
   const openModal = () => {
@@ -105,27 +52,27 @@ const Sectionhome6 = () => {
 
   return (
     <div className="bg-[#191919] bg-opacity-60 flex flex-col md:flex-row items-center justify-center min-h-[60vh] p-8 text-white">
+      {/* Left Section - Text */}
       <div className="md:w-1/2 text-center md:text-center flex flex-col items-center md:items-center moving-paragraph">
         <h1 className="text-4xl md:text-5xl font-bold text-[#8b0000]">
-          PRODOTTI PER EVENTI
+          PRODOTTI E PEZZI UNICI
         </h1>
         <h2 className="italic text-lg md:text-xl mt-2 font-bold">
-          Eventi e Cerimonie
+          Prodotti unici
         </h2>
-        {/*  <p className="mt-4 text-lg md:text-xl max-w-lg md:max-w-xl">
-          Offriamo soluzioni su misura che combinano estetica e funzionalità:
-          arredi personalizzati, installazioni creative in metallo e plastica,
-          progetti innovativi come ERGONICA e lavorazioni in plexiglass, forex e
-          dibond per complementi d’arredo, trofei, e insegne aziendali.
-          Trasformiamo le tue idee con cura artigianale e tecnologie avanzate.
-        </p> */}
+        <p className="mt-4 text-sm md:text-base max-w-md"></p>
       </div>
 
+      {/* Right Section - Carousel */}
       <div
         className="w-full md:w-1/3 flex justify-center mt-6 md:mt-0 moving-paragraph"
         onClick={openModal}
       >
-        <Slider {...settings} className="w-[30vh] md:w-[40vh] cursor-pointer">
+        <Slider
+          {...settings}
+          ref={sliderRef}
+          className="w-[30vh] md:w-[40vh] cursor-pointer"
+        >
           {images.map((image, index) => (
             <div key={index}>
               <img
@@ -171,4 +118,4 @@ const Sectionhome6 = () => {
   );
 };
 
-export default Sectionhome6;
+export default Sectionhome10;

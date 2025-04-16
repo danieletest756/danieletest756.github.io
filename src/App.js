@@ -17,6 +17,7 @@ import Sectionhome8 from "./components/Sections/SectionHome8";
 import Sectionhome9 from "./components/Sections/SectionHome9";
 import TeamGrid from "./components/TeamSection.jsx/SectionTeam";
 import Testimonials from "./components/Reviews";
+import Sectionhome10 from "./components/Sections/SectionHome10";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
           <Sectionhome7 />
           <Sectionhome8 />
           <Sectionhome9 />
+          <Sectionhome10 />
         </div>
         <PartnersSection />
         {/* <Sectionhome4 /> */}

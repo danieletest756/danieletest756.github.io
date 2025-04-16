@@ -3,36 +3,72 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-import immaginemeccanica2 from "../../assets/lavorazioni meccaniche/2.jpg";
-import immaginemeccanica3 from "../../assets/lavorazioni meccaniche/3.jpg";
-import immaginemeccanica4 from "../../assets/lavorazioni meccaniche/4.jpg";
-import immaginemeccanica5 from "../../assets/lavorazioni meccaniche/5.jpg";
-import MacchinettaPULIZIA from "../../assets/lavorazioni meccaniche/Macchinetta pulizia condotti aria.jpg";
-import portainterna from "../../assets/lavorazioni meccaniche/Porte garage interna.jpg";
-import portaesterna from "../../assets/lavorazioni meccaniche/Porte per garage.jpg";
-import telaio from "../../assets/lavorazioni meccaniche/Telaio per moto.jpg";
-import Tirafondi from "../../assets/lavorazioni meccaniche/Tirafondi.jpg";
-import Ugelli from "../../assets/lavorazioni meccaniche/Ugelli.jpg";
-import Argani from "../../assets/lavorazioni meccaniche/Argani.jpg";
-import Carrucole from "../../assets/lavorazioni meccaniche/Carrucole.jpg";
-import braccio from "../../assets/lavorazioni meccaniche/braccio.jpg";
-import forcella from "../../assets/lavorazioni meccaniche/Forcella per moto.jpg";
+import image1 from "../../assets/idee regalo/1.jpg";
+import image2 from "../../assets/idee regalo/2.jpg";
+import image3 from "../../assets/idee regalo/3.jpg";
+import image4 from "../../assets/idee regalo/4.jpg";
+import image5 from "../../assets/idee regalo/5.jpg";
+import image6 from "../../assets/idee regalo/6.jpg";
+import image7 from "../../assets/idee regalo/7.jpg";
+import image8 from "../../assets/idee regalo/8.jpg";
+import image9 from "../../assets/idee regalo/9.jpg";
+import image10 from "../../assets/idee regalo/10.jpg";
+import image11 from "../../assets/idee regalo/11.jpg";
+import image12 from "../../assets/idee regalo/12.jpg";
+import image13 from "../../assets/idee regalo/13.jpg";
+import image14 from "../../assets/idee regalo/14.jpg";
+import image15 from "../../assets/idee regalo/15.jpg";
+import image16 from "../../assets/idee regalo/16.jpg";
+import image17 from "../../assets/idee regalo/17.jpg";
+import image18 from "../../assets/idee regalo/18.jpg";
+import image19 from "../../assets/idee regalo/19.jpg";
+import image20 from "../../assets/idee regalo/20.jpg";
+import image21 from "../../assets/idee regalo/21.jpg";
+import image22 from "../../assets/idee regalo/22.jpg";
+import image23 from "../../assets/idee regalo/23.jpg";
+import image24 from "../../assets/idee regalo/24.jpg";
+import image25 from "../../assets/idee regalo/25.jpg";
+import image26 from "../../assets/idee regalo/26.jpg";
+import image27 from "../../assets/idee regalo/27.jpg";
+import image28 from "../../assets/idee regalo/28.jpg";
+import image29 from "../../assets/idee regalo/29.jpg";
+import image30 from "../../assets/idee regalo/30.jpg";
+import image31 from "../../assets/idee regalo/31.jpg";
+import image32 from "../../assets/idee regalo/32.jpg";
 
 const carouselImages = [
-  immaginemeccanica2,
-  immaginemeccanica3,
-  immaginemeccanica4,
-  immaginemeccanica5,
-  MacchinettaPULIZIA,
-  portainterna,
-  portaesterna,
-  telaio,
-  Tirafondi,
-  Ugelli,
-  Argani,
-  Carrucole,
-  braccio,
-  forcella,
+  image1,
+  image2,
+  image3,
+  image4,
+  image5,
+  image6,
+  image7,
+  image8,
+  image9,
+  image10,
+  image11,
+  image12,
+  image13,
+  image14,
+  image15,
+  image16,
+  image17,
+  image18,
+  image19,
+  image20,
+  image21,
+  image22,
+  image23,
+  image24,
+  image25,
+  image26,
+  image27,
+  image28,
+  image29,
+  image30,
+  image31,
+  image32,
 ];
 
 const Sectionhome5 = () => {
@@ -65,16 +101,16 @@ const Sectionhome5 = () => {
     >
       <div className="md:w-1/2 text-center md:text-center flex flex-col items-center md:items-center">
         <h1 className="text-3xl md:text-5xl font-bold text-[#8b0000]">
-          PRODOTTI MECCANICI
+          IDEE REGALO
         </h1>
         <h2 className="italic text-lg md:text-xl mt-2 font-bold">
-          Meccanici e di Precisione
+          Gadget e idee regalo
         </h2>
-        <p className="mt-4 text-lg md:text-xl max-w-lg md:max-w-xl">
+        {/*  <p className="mt-4 text-lg md:text-xl max-w-lg md:max-w-xl">
           Offriamo soluzioni meccaniche personalizzate, dalla produzione
           artigianale a progetti complessi. Utilizziamo tecnologie avanzate come
           CNC e laser CO2 per garantire precisione.
-        </p>
+        </p> */}
       </div>
 
       <div

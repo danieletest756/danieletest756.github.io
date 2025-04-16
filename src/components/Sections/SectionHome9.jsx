@@ -3,24 +3,36 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-import carosello1 from "../../assets/panca da giardino/panca1.jpg";
-import carosello2 from "../../assets/panca da giardino/panca2.jpg";
-import carosello3 from "../../assets/panca da giardino/panca3.jpg";
-import carosello4 from "../../assets/panca da giardino/panca4.jpg";
-import carosello5 from "../../assets/panca da giardino/giardino1.jpg";
-import carosello6 from "../../assets/panca da giardino/giardino2.jpg";
-import carosello7 from "../../assets/panca da giardino/giardino3.jpg";
-import carosello8 from "../../assets/panca da giardino/giardino4.jpg";
+import image1 from "../../assets/insegne/1.jpg";
+import image2 from "../../assets/insegne/2.jpg";
+import image3 from "../../assets/insegne/3.jpg";
+import image4 from "../../assets/insegne/4.jpg";
+import image5 from "../../assets/insegne/5.jpg";
+import image6 from "../../assets/insegne/6.jpg";
+import image7 from "../../assets/insegne/7.jpg";
+import image8 from "../../assets/insegne/8.jpg";
+import image9 from "../../assets/insegne/9.jpg";
+import image10 from "../../assets/insegne/10.jpg";
+import image11 from "../../assets/insegne/11.jpg";
+import image12 from "../../assets/insegne/12.jpg";
+import image13 from "../../assets/insegne/13.jpg";
+import image14 from "../../assets/insegne/14.jpg";
 
 const carouselImages = [
-  carosello1,
-  carosello2,
-  carosello3,
-  carosello4,
-  carosello5,
-  carosello6,
-  carosello7,
-  carosello8,
+  image1,
+  image2,
+  image3,
+  image4,
+  image5,
+  image6,
+  image7,
+  image8,
+  image9,
+  image10,
+  image11,
+  image12,
+  image13,
+  image14,
 ];
 
 const Sectionhome7 = () => {
@@ -51,15 +63,15 @@ const Sectionhome7 = () => {
       {/* Right Section - Text */}
       <div className="md:w-1/2 text-center md:text-center flex flex-col items-center md:items-center">
         <h1 className="text-3xl md:text-5xl font-bold text-[#8b0000]">
-          PRODOTTI DI DESIGN ARREDO GIARDINO
+          INSEGNE E PRODOTTI PER NEGOZI
         </h1>
         <h2 className="italic text-lg md:text-xl mt-2 font-bold">
-          Panche e Prodotti Giardino
+          NEGOZI E ALTRO
         </h2>
-        <p className="mt-4 text-lg md:text-xl max-w-lg md:max-w-xl">
+        {/* <p className="mt-4 text-lg md:text-xl max-w-lg md:max-w-xl">
           Scopri la nostra selezione di arredi da giardino dal design elegante e
           funzionale.
-        </p>
+        </p> */}
       </div>
 
       {/* Left Section - Carousel */}

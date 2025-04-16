@@ -2,26 +2,52 @@ import React, { useEffect, useRef, useState } from "react";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import carosello1 from "../../assets/arredo negozi/arredo1.jpg";
-import carosello2 from "../../assets/arredo negozi/arredo2.jpg";
-import carosello5 from "../../assets/arredo negozi/arredo4.jpg";
-import carosello6 from "../../assets/arredo negozi/arredo5.jpg";
-import carosello7 from "../../assets/arredo negozi/arredo6.jpg";
-import carosello8 from "../../assets/arredo negozi/arredo7.jpg";
-import carosello9 from "../../assets/arredo negozi/arredo8.jpg";
-import carosello10 from "../../assets/arredo negozi/arredo9.jpg";
-import carosello4 from "../../assets/arredo negozi/arredo10.jpg";
+import image1 from "../../assets/feste/1.jpg";
+import image2 from "../../assets/feste/2.jpg";
+import image3 from "../../assets/feste/3.jpg";
+import image4 from "../../assets/feste/4.jpg";
+import image5 from "../../assets/feste/5.jpg";
+import image6 from "../../assets/feste/6.jpg";
+import image7 from "../../assets/feste/7.jpg";
+import image8 from "../../assets/feste/8.jpg";
+import image9 from "../../assets/feste/9.jpg";
+import image10 from "../../assets/feste/10.jpg";
+import image11 from "../../assets/feste/11.jpg";
+import image12 from "../../assets/feste/12.jpg";
+import image13 from "../../assets/feste/13.jpg";
+import image14 from "../../assets/feste/14.jpg";
+import image15 from "../../assets/feste/15.jpg";
+import image16 from "../../assets/feste/16.jpg";
+import image17 from "../../assets/feste/17.jpg";
+import image18 from "../../assets/feste/18.jpg";
+import image19 from "../../assets/feste/19.png";
+import image20 from "../../assets/feste/20.png";
+import image21 from "../../assets/feste/21.jpg";
+import image22 from "../../assets/feste/22.jpeg";
 
 const images = [
-  carosello1,
-  carosello2,
-  carosello4,
-  carosello5,
-  carosello6,
-  carosello7,
-  carosello8,
-  carosello9,
-  carosello10,
+  image1,
+  image2,
+  image3,
+  image4,
+  image5,
+  image6,
+  image7,
+  image8,
+  image9,
+  image10,
+  image11,
+  image12,
+  image13,
+  image14,
+  image15,
+  image16,
+  image17,
+  image18,
+  image19,
+  image20,
+  image21,
+  image22,
 ];
 
 const Sectionhome8 = () => {
@@ -70,10 +96,10 @@ const Sectionhome8 = () => {
       {/* Left Section - Text */}
       <div className="md:w-1/2 text-center md:text-center flex flex-col items-center md:items-center moving-paragraph">
         <h1 className="text-4xl md:text-5xl font-bold text-[#8b0000]">
-          PRODOTTI PLASTICI, ARREDO E DESIGN
+          PRODOTTI PER FESTE
         </h1>
         <h2 className="italic text-lg md:text-xl mt-2 font-bold">
-          Insegne e Prodotti per Negozi
+          Halloween, Natale e altre.
         </h2>
         <p className="mt-4 text-sm md:text-base max-w-md"></p>
       </div>

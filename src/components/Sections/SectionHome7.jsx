@@ -3,30 +3,40 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-import idea2 from "../../assets/plastici matrimoni e regalo/idea2.jpg";
-import idea3 from "../../assets/plastici matrimoni e regalo/idea3.jpg";
-import idea1 from "../../assets/plastici matrimoni e regalo/idea1.jpg";
-import idea5 from "../../assets/plastici matrimoni e regalo/idea5.jpg";
-import idea6 from "../../assets/plastici matrimoni e regalo/idea6.jpg";
-import idea7 from "../../assets/plastici matrimoni e regalo/idea7.jpg";
-import idea8 from "../../assets/plastici matrimoni e regalo/idea8.jpg";
-import matrimoni2 from "../../assets/plastici matrimoni e regalo/matrimoni2.jpg";
-import matrimoni3 from "../../assets/plastici matrimoni e regalo/matrimoni3.jpg";
-import matrimoni4 from "../../assets/plastici matrimoni e regalo/matrimoni4.jpg";
-import matrimoni1 from "../../assets/plastici matrimoni e regalo/matrimoni1.jpg";
+import image1 from "../../assets/design per la casa/1.jpg";
+import image2 from "../../assets/design per la casa/2.jpg";
+import image3 from "../../assets/design per la casa/3.jpg";
+import image4 from "../../assets/design per la casa/4.jpg";
+import image5 from "../../assets/design per la casa/5.jpg";
+import image6 from "../../assets/design per la casa/6.jpg";
+import image7 from "../../assets/design per la casa/7.jpg";
+import image8 from "../../assets/design per la casa/8.jpg";
+import image9 from "../../assets/design per la casa/9.jpg";
+import image10 from "../../assets/design per la casa/10.jpg";
+import image11 from "../../assets/design per la casa/11.jpg";
+import image12 from "../../assets/design per la casa/12.jpg";
+import image13 from "../../assets/design per la casa/13.jpg";
+import image14 from "../../assets/design per la casa/14.jpg";
+import image15 from "../../assets/design per la casa/15.jpg";
+import image16 from "../../assets/design per la casa/16.jpg";
 
 const carouselImages = [
-  idea2,
-  idea3,
-  idea1,
-  idea5,
-  idea6,
-  idea7,
-  idea8,
-  matrimoni2,
-  matrimoni3,
-  matrimoni4,
-  matrimoni1,
+  image1,
+  image2,
+  image3,
+  image4,
+  image5,
+  image6,
+  image7,
+  image8,
+  image9,
+  image10,
+  image11,
+  image12,
+  image13,
+  image14,
+  image15,
+  image16,
 ];
 
 const Sectionhome7 = () => {
@@ -56,10 +66,10 @@ const Sectionhome7 = () => {
     <div className="bg-[#191919] bg-opacity-60 flex flex-col md:flex-row-reverse items-center justify-center min-h-[60vh] p-8 md:p-16 text-white">
       <div className="md:w-1/2 text-center flex flex-col items-center">
         <h1 className="text-3xl md:text-5xl font-bold text-[#8b0000]">
-          PRODOTTI PLASTICI ARREDO E DESIGN
+          PRODOTTI DI DESIGN PER LA CASA
         </h1>
         <h2 className="italic text-lg md:text-xl mt-2 font-bold">
-          Matrimoni e idee Regalo
+          Design per la casa e il giardino
         </h2>
       </div>
 
