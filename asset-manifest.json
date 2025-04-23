@@ -1,9 +1,9 @@
 {
   "files": {
     "main.css": "/static/css/main.50f1f103.css",
-    "main.js": "/static/js/main.87c9f60b.js",
+    "main.js": "/static/js/main.e71a07ab.js",
     "static/js/453.8ca46fb4.chunk.js": "/static/js/453.8ca46fb4.chunk.js",
-    "static/media/video.mp4": "/static/media/video.783698f4ccc2764a488f.mp4",
+    "static/media/video.mp4": "/static/media/video.9266de03d49db7daebb3.mp4",
     "static/media/test2.gif": "/static/media/test2.a9b8b3f47335262852e4.gif",
     "static/media/test4.gif": "/static/media/test4.d369a225d71b78d3051b.gif",
     "static/media/test2-ezgif.com-crop.gif": "/static/media/test2-ezgif.com-crop.ac7c6399bb04a7272af8.gif",
@@ -46,21 +46,21 @@
     "static/media/background.jpg": "/static/media/background.2c8e37b2d725210f19b2.jpg",
     "static/media/21.jpg": "/static/media/21.712493303090da6651d2.jpg",
     "static/media/17.jpg": "/static/media/17.01fbff9b93114580e834.jpg",
-    "static/media/iconariparazione.jpg": "/static/media/iconariparazione.6d2efbd20a46fa3868c5.jpg",
-    "static/media/iconaprogettazione.jpg": "/static/media/iconaprogettazione.bb035a3aadec007f379b.jpg",
     "static/media/30.jpg": "/static/media/30.f74836d5f59cf0cd8480.jpg",
     "static/media/22.jpg": "/static/media/22.91501c76f02aee63404e.jpg",
     "static/media/26.jpg": "/static/media/26.75657243b5171fd013e8.jpg",
-    "static/media/iconamanutenzione.jpg": "/static/media/iconamanutenzione.7f84caee681fa3215cff.jpg",
     "static/media/20.jpg": "/static/media/20.e5001325dad159527758.jpg",
     "static/media/24.jpg": "/static/media/24.7b2feb420a55f407d5c7.jpg",
     "static/media/19.jpg": "/static/media/19.e357a53b94a3cbad93cf.jpg",
     "static/media/27.jpg": "/static/media/27.bf0aa1738e703af55915.jpg",
+    "static/media/Produzione.jpg": "/static/media/Produzione.64ac32440bcb22d601f3.jpg",
+    "static/media/Riparazione.jpg": "/static/media/Riparazione.3bf83f24c1f4e106f885.jpg",
     "static/media/31.jpg": "/static/media/31.f5d41fe56f40d5d22389.jpg",
     "static/media/design.jpg": "/static/media/design.e10d2e4c62741c92b44f.jpg",
     "static/media/29.jpg": "/static/media/29.712839308a48e1b40a24.jpg",
     "static/media/22.jpeg": "/static/media/22.f5237f8c66375fff339e.jpeg",
     "static/media/accademia.png": "/static/media/accademia.9248084f879371899e90.png",
+    "static/media/Progettazione.jpg": "/static/media/Progettazione.d39890df679cde0c72d1.jpg",
     "static/media/plastica.jpg": "/static/media/plastica.299f5e1c7c9c5d0f585c.jpg",
     "static/media/32.jpg": "/static/media/32.65edb36330c61ccfdda1.jpg",
     "static/media/invio riuscito.png": "/static/media/invio riuscito.c05e7911c4a46be10109.png",
@@ -78,11 +78,11 @@
     "static/media/slick.woff": "/static/media/slick.295183786cd8a1389865.woff",
     "index.html": "/index.html",
     "main.50f1f103.css.map": "/static/css/main.50f1f103.css.map",
-    "main.87c9f60b.js.map": "/static/js/main.87c9f60b.js.map",
+    "main.e71a07ab.js.map": "/static/js/main.e71a07ab.js.map",
     "453.8ca46fb4.chunk.js.map": "/static/js/453.8ca46fb4.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.50f1f103.css",
-    "static/js/main.87c9f60b.js"
+    "static/js/main.e71a07ab.js"
   ]
 }
