@@ -33,6 +33,9 @@ export const IconInfo = (p) => (
 export const IconWarning = (p) => (
   <svg {...I(p)}><path d="M12 4.5 2.8 20h18.4z" /><path d="M12 10v4" /><path d="M12 17.4v.1" /></svg>
 )
+export const IconTimer = (p) => (
+  <svg {...I(p)}><circle cx="12" cy="13.5" r="8" /><path d="M12 9.5v4.3l3 2" /><path d="M9.5 2h5M12 5.3V2" /></svg>
+)
 export const IconCamera = (p) => (
   <svg {...I(p)}>
     <path d="M3 8.5h3.2l1.4-2h7.8l1.4 2H20a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1Z" />

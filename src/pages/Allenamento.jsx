@@ -3,9 +3,36 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import {
   Section, Empty, Modal, Field, Spinner,
-  IconPlus, IconPlay, IconTrash, IconEdit, IconChevron,
+  IconPlus, IconPlay, IconTrash, IconEdit, IconChevron, IconCheck, IconTimer,
 } from '../components/ui'
 import { useToast, useConfirm } from '../components/Feedback'
+
+const oggi = () => new Date().toISOString().slice(0, 10)
+
+/* Countdown di recupero: parte quando si registra un carico o si tocca "Avvia recupero".
+   Vive qui, non in un context, perché serve solo mentre si è su questa pagina. */
+function useTimerRecupero() {
+  const [stato, setStato] = useState(null)   // { fine, durata, nome }
+  const [restante, setRestante] = useState(0)
+
+  useEffect(() => {
+    if (!stato) return
+    const tick = () => {
+      const r = Math.max(0, Math.round((stato.fine - Date.now()) / 1000))
+      setRestante(r)
+      if (r === 0) { navigator.vibrate?.(200); setStato(null) }
+    }
+    tick()
+    const id = setInterval(tick, 250)
+    return () => clearInterval(id)
+  }, [stato])
+
+  return {
+    attivo: !!stato, restante, durata: stato?.durata ?? 0, nome: stato?.nome,
+    avvia: (durata, nome) => durata > 0 && setStato({ fine: Date.now() + durata * 1000, durata, nome }),
+    ferma: () => setStato(null),
+  }
+}
 
 export default function Allenamento() {
   const { targetId, canEdit } = useAuth()
@@ -18,6 +45,9 @@ export default function Allenamento() {
   const [editItem, setEditItem] = useState(null)
   const [editDay, setEditDay] = useState(null)
   const [newPlan, setNewPlan] = useState(false)
+  const toast = useToast()
+  const chiedi = useConfirm()
+  const timer = useTimerRecupero()
 
   const load = useCallback(async () => {
     if (!targetId) return
@@ -67,12 +97,34 @@ export default function Allenamento() {
   const giorno = days[tab]
   const lista = giorno ? items[giorno.id] ?? [] : []
 
+  async function eliminaScheda() {
+    const ok = await chiedi({
+      title: `Elimino la scheda "${plan.title}"?`,
+      body: 'Spariscono anche i giorni, gli esercizi e i carichi registrati legati a questa scheda. Non si torna indietro.',
+      conferma: 'Elimina scheda',
+      danger: true,
+    })
+    if (!ok) return
+    const { error } = await supabase.from('workout_plans').delete().eq('id', plan.id)
+    if (error) return toast.err(error)
+    toast.ok('Scheda eliminata')
+    setTab(0)
+    load()
+  }
+
   return (
     <>
       <Section>
-        <div className="mb-4">
-          <h1 className="font-cond text-[30px] font-bold leading-none">{plan.title}</h1>
-          {plan.description && <p className="mt-2 text-sm leading-relaxed text-muted">{plan.description}</p>}
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h1 className="font-cond text-[30px] font-bold leading-none">{plan.title}</h1>
+            {plan.description && <p className="mt-2 text-sm leading-relaxed text-muted">{plan.description}</p>}
+          </div>
+          {canEdit && (
+            <button onClick={eliminaScheda} className="btn-danger px-3 py-2 text-sm">
+              <IconTrash width={16} height={16} /> Elimina scheda
+            </button>
+          )}
         </div>
 
         {/* selettore giorni */}
@@ -119,10 +171,11 @@ export default function Allenamento() {
           <ol className="space-y-3">
             {lista.map((it, i) => (
               <Esercizio
-                key={it.id} item={it} n={i + 1} ultimo={ultimi[it.id]}
+                key={it.id} item={it} n={i + 1} ultimo={ultimi[it.id]} oggi={oggi()}
                 canEdit={canEdit}
                 onLog={() => setLogFor(it)}
                 onEdit={() => setEditItem(it)}
+                onTimer={() => timer.avvia(it.rest_sec, it.exercise?.name)}
               />
             ))}
           </ol>
@@ -136,14 +189,42 @@ export default function Allenamento() {
         )}
       </Section>
 
-      <ModalLog item={logFor} userId={targetId} onClose={() => setLogFor(null)} onDone={load} />
+      <ModalLog
+        item={logFor} userId={targetId} onClose={() => setLogFor(null)} onDone={load}
+        onSalvato={(it) => timer.avvia(it.rest_sec, it.exercise?.name)}
+      />
       <ModalItem item={editItem} onClose={() => setEditItem(null)} onDone={load} />
       <ModalGiorno
         day={editDay}
         onClose={() => setEditDay(null)}
         onDone={(eliminato) => { if (eliminato) setTab(0); load() }}
       />
+      <BarraRecupero timer={timer} />
     </>
+  )
+}
+
+/* Countdown fisso sopra la barra di navigazione: resta visibile mentre si scorre la scheda. */
+function BarraRecupero({ timer }) {
+  if (!timer.attivo) return null
+  const mm = Math.floor(timer.restante / 60)
+  const ss = String(timer.restante % 60).padStart(2, '0')
+  const pct = timer.durata ? Math.max(0, Math.min(100, (timer.restante / timer.durata) * 100)) : 0
+  return (
+    <div className="fixed inset-x-0 z-40 flex justify-center px-4 bottom-[calc(env(safe-area-inset-bottom)+76px)]">
+      <div className="flex w-full max-w-3xl items-center gap-3 rounded-2xl bg-ink px-4 py-3 text-white shadow-card">
+        <span className="stat shrink-0 text-[24px]">{mm}:{ss}</span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[12.5px] text-white/65">Recupero{timer.nome ? ` · ${timer.nome}` : ''}</p>
+          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/15">
+            <div className="h-full rounded-full bg-saffron" style={{ width: `${pct}%` }} />
+          </div>
+        </div>
+        <button onClick={timer.ferma} className="shrink-0 rounded-lg bg-white/10 px-3 py-1.5 text-[13px] font-medium">
+          Salta
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -196,13 +277,13 @@ function ModalGiorno({ day, onClose, onDone }) {
         <Field
           label="Titolo del giorno" value={f.title} required autoFocus
           onChange={(e) => setF({ ...f, title: e.target.value })}
-          placeholder="Gambe: catena posteriore"
+          placeholder="Giorno A"
         />
         <label className="block">
           <span className="label">Nota in cima al giorno</span>
           <textarea className="field min-h-[80px]" value={f.notes}
                     onChange={(e) => setF({ ...f, notes: e.target.value })}
-                    placeholder="Riscaldamento: 5 minuti di cyclette e 2 serie leggere sul primo esercizio." />
+                    placeholder="Note utili per svolgere la seduta." />
         </label>
         <div className="flex gap-3 pt-1">
           <button className="btn-primary flex-1" disabled={busy}>{busy ? 'Salvo…' : 'Salva'}</button>
@@ -218,20 +299,22 @@ function ModalGiorno({ day, onClose, onDone }) {
 }
 
 /* ---------------- riga esercizio ---------------- */
-function Esercizio({ item, n, ultimo, canEdit, onLog, onEdit }) {
+function Esercizio({ item, n, ultimo, oggi, canEdit, onLog, onEdit, onTimer }) {
   const [aperto, setAperto] = useState(false)
   const ex = item.exercise
+  const fattoOggi = ultimo?.date === oggi
   return (
     <li className="card overflow-hidden">
       <button onClick={() => setAperto(!aperto)} className="flex w-full items-center gap-3 p-4 text-left">
-        <span className="stat grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-canvas text-[17px] text-muted">
-          {n}
+        <span className={`stat grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[17px] ${
+          fattoOggi ? 'bg-good/10 text-good' : 'bg-canvas text-muted'}`}>
+          {fattoOggi ? <IconCheck width={16} height={16} /> : n}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate font-semibold leading-tight">{ex?.name ?? 'Esercizio'}</span>
           {ultimo && (
-            <span className="text-[12.5px] text-muted">
-              ultima volta {ultimo.weight_kg ?? '—'} kg × {ultimo.reps ?? '—'}
+            <span className={`text-[12.5px] ${fattoOggi ? 'font-medium text-good' : 'text-muted'}`}>
+              {fattoOggi ? 'fatto oggi' : 'ultima volta'} {ultimo.weight_kg ?? '—'} kg × {ultimo.reps ?? '—'}
             </span>
           )}
         </span>
@@ -266,7 +349,11 @@ function Esercizio({ item, n, ultimo, canEdit, onLog, onEdit }) {
               </button>
             )}
           </div>
-          {item.rest_sec ? <p className="mt-3 text-xs text-muted">Recupero {item.rest_sec}s</p> : null}
+          {item.rest_sec ? (
+            <button onClick={onTimer} className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand">
+              <IconTimer width={16} height={16} /> Avvia recupero di {item.rest_sec}s
+            </button>
+          ) : null}
         </div>
       )}
     </li>
@@ -274,82 +361,127 @@ function Esercizio({ item, n, ultimo, canEdit, onLog, onEdit }) {
 }
 
 /* ---------------- registrazione carichi ---------------- */
-function ModalLog({ item, userId, onClose, onDone }) {
-  const [serie, setSerie] = useState([])
+function ModalLog({ item, userId, onClose, onDone, onSalvato }) {
+  const [riga, setRiga] = useState({ weight_kg: '', reps: '', rir: '', notes: '' })
   const [storico, setStorico] = useState([])
+  const [origine, setOrigine] = useState(null)   // 'oggi' | 'ultima' | null
   const [busy, setBusy] = useState(false)
   const toast = useToast()
 
   useEffect(() => {
     if (!item) return
-    const n = Math.max(1, parseInt(item.sets, 10) || 3)
-    setSerie(Array.from({ length: n }, () => ({ weight_kg: '', reps: '', rir: '' })))
+    setRiga({ weight_kg: '', reps: '', rir: '', notes: '' })
+    setStorico([]); setOrigine(null)
     supabase.from('workout_logs').select('*').eq('item_id', item.id).eq('user_id', userId)
       .order('date', { ascending: false }).order('set_no').limit(12)
-      .then(({ data }) => setStorico(data ?? []))
+      .then(({ data }) => {
+        const s = data ?? []
+        setStorico(s)
+        // Se l'atleta ha già registrato oggi, sta modificando quella riga.
+        // Altrimenti gli propongo i valori dell'ultima volta: di solito è quello che rialza.
+        const diOggi = s.find((l) => l.date === oggi())
+        if (diOggi) {
+          setRiga({
+            weight_kg: diOggi.weight_kg ?? '', reps: diOggi.reps ?? '',
+            rir: diOggi.rir ?? '', notes: diOggi.notes ?? '',
+          })
+          setOrigine('oggi')
+        } else if (s[0]) {
+          setRiga({ weight_kg: s[0].weight_kg ?? '', reps: s[0].reps ?? '', rir: s[0].rir ?? '', notes: '' })
+          setOrigine('ultima')
+        }
+      })
   }, [item, userId])
 
   if (!item) return null
 
   async function salva(e) {
     e.preventDefault()
-    const righe = serie
-      .map((s, i) => ({
-        user_id: userId, item_id: item.id, set_no: i + 1,
-        weight_kg: s.weight_kg === '' ? null : Number(s.weight_kg),
-        reps: s.reps === '' ? null : Number(s.reps),
-        rir: s.rir === '' ? null : Number(s.rir),
-      }))
-      .filter((r) => r.weight_kg !== null || r.reps !== null)
-    if (!righe.length) return onClose()
+    const data = oggi()
+    const log = {
+      user_id: userId,
+      item_id: item.id,
+      date: data,
+      set_no: 1,
+      weight_kg: riga.weight_kg === '' ? null : Number(riga.weight_kg),
+      reps: riga.reps === '' ? null : Number(riga.reps),
+      rir: riga.rir === '' ? null : Number(riga.rir),
+      notes: riga.notes.trim() || null,
+    }
+    if (log.weight_kg === null && log.reps === null) return onClose()
     setBusy(true)
-    const { error } = await supabase.from('workout_logs').insert(righe)
+    const { error: delError } = await supabase.from('workout_logs')
+      .delete().eq('user_id', userId).eq('item_id', item.id).eq('date', data)
+    if (delError) { setBusy(false); return toast.err(delError) }
+
+    const { error } = await supabase.from('workout_logs').insert(log)
     setBusy(false)
     if (error) return toast.err(error)
-    toast.ok(`${righe.length === 1 ? 'Serie registrata' : `${righe.length} serie registrate`} · ${item.exercise?.name ?? ''}`)
+    toast.ok(`Carico registrato · ${item.exercise?.name ?? ''}`)
+    onSalvato?.(item)
     onClose(); onDone()
   }
 
-  const perData = storico.reduce((acc, l) => { (acc[l.date] ||= []).push(l); return acc }, {})
+  const visti = new Set()
+  const perData = []
+  storico.forEach((l) => {
+    if (visti.has(l.date)) return
+    visti.add(l.date)
+    perData.push(l)
+  })
 
   return (
     <Modal open={!!item} onClose={onClose} title={item.exercise?.name ?? 'Esercizio'}>
-      <p className="-mt-2 mb-4 text-sm text-muted">
+      <p className="-mt-2 mb-1 text-sm text-muted">
         Obiettivo di oggi: {item.sets} × {item.reps}{item.rir ? ` a RIR ${item.rir}` : ''}
       </p>
+      {origine === 'ultima' && (
+        <p className="mb-4 text-[13px] text-brand">Precompilato con i valori dell'ultima volta: modifica se serve.</p>
+      )}
+      {origine === 'oggi' && (
+        <p className="mb-4 text-[13px] text-muted">Stai modificando la seduta già registrata oggi.</p>
+      )}
+      {!origine && <div className="mb-4" />}
       <form onSubmit={salva} className="space-y-3">
-        <div className="grid grid-cols-[28px_1fr_1fr_1fr] items-center gap-2 text-[12px] text-muted">
-          <span /><span>kg</span><span>rip</span><span>RIR</span>
+        <div className="grid grid-cols-3 items-center gap-2 text-[12px] text-muted">
+          <span>kg</span><span>rip</span><span>RIR</span>
         </div>
-        {serie.map((s, i) => (
-          <div key={i} className="grid grid-cols-[28px_1fr_1fr_1fr] items-center gap-2">
-            <span className="stat text-center text-[17px] text-muted">{i + 1}</span>
-            {['weight_kg', 'reps', 'rir'].map((k) => (
-              <input
-                key={k} className="field px-2 py-2 text-center" type="number" step="0.5" inputMode="decimal"
-                value={s[k]}
-                onChange={(e) => {
-                  const c = [...serie]; c[i] = { ...c[i], [k]: e.target.value }; setSerie(c)
-                }}
-              />
-            ))}
-          </div>
-        ))}
+        <div className="grid grid-cols-3 items-center gap-2">
+          {['weight_kg', 'reps', 'rir'].map((k) => (
+            <input
+              key={k} className="field px-2 py-2 text-center" type="number" step="0.5" inputMode="decimal"
+              value={riga[k]}
+              onChange={(e) => setRiga((prev) => ({ ...prev, [k]: e.target.value }))}
+            />
+          ))}
+        </div>
+        <label className="block">
+          <span className="label">Sensazioni su questo esercizio</span>
+          <textarea
+            className="field min-h-[74px]"
+            value={riga.notes}
+            onChange={(e) => setRiga((prev) => ({ ...prev, notes: e.target.value }))}
+            placeholder="Esecuzione, fatica, dolore, stabilita, pompaggio..."
+          />
+        </label>
         <div className="flex gap-3 pt-2">
-          <button className="btn-primary flex-1" disabled={busy}>{busy ? 'Salvo…' : 'Salva la seduta'}</button>
+          <button className="btn-primary flex-1" disabled={busy}>{busy ? 'Salvo…' : 'Salva il carico di oggi'}</button>
           <button type="button" onClick={onClose} className="btn-ghost">Chiudi</button>
         </div>
       </form>
 
-      {Object.keys(perData).length > 0 && (
+      {perData.length > 0 && (
         <div className="mt-6 border-t border-line pt-4">
           <p className="mb-2 text-[13px] font-medium text-muted">Sedute precedenti</p>
-          {Object.entries(perData).map(([d, ls]) => (
-            <div key={d} className="flex gap-3 py-1.5 text-sm">
-              <span className="w-16 shrink-0 text-muted">{d.slice(8, 10)}/{d.slice(5, 7)}</span>
-              <span className="stat text-[16px]">
-                {ls.map((l) => `${l.weight_kg ?? '–'}×${l.reps ?? '–'}`).join('   ')}
-              </span>
+          {perData.map((l) => (
+            <div key={l.id} className="flex gap-3 py-1.5 text-sm">
+              <span className="w-16 shrink-0 text-muted">{l.date.slice(8, 10)}/{l.date.slice(5, 7)}</span>
+              <div>
+                <p className="stat text-[16px]">
+                  {l.weight_kg ?? '–'}×{l.reps ?? '–'}{l.rir != null ? ` · RIR ${l.rir}` : ''}
+                </p>
+                {l.notes && <p className="text-[12px] text-muted">{l.notes}</p>}
+              </div>
             </div>
           ))}
         </div>
@@ -454,19 +586,12 @@ function ModalPiano({ open, onClose, userId, onDone }) {
   async function salva(e) {
     e.preventDefault()
     setBusy(true)
-    const { data, error } = await supabase.from('workout_plans')
+    const { error } = await supabase.from('workout_plans')
       .insert({ user_id: userId, title: f.title, description: f.description, weeks: Number(f.weeks), is_active: true })
       .select().single()
-    if (!error && data) {
-      await supabase.from('workout_days').insert([
-        { plan_id: data.id, position: 1, title: 'Gambe: quadricipiti e glutei' },
-        { plan_id: data.id, position: 2, title: 'Parte alta e core' },
-        { plan_id: data.id, position: 3, title: 'Gambe: catena posteriore e polpacci' },
-      ])
-    }
     setBusy(false)
     if (error) return toast.err(error)
-    toast.ok('Scheda creata con i tre giorni standard')
+    toast.ok('Scheda creata')
     onClose(); onDone()
   }
 
@@ -474,16 +599,16 @@ function ModalPiano({ open, onClose, userId, onDone }) {
     <Modal open={open} onClose={onClose} title="Nuova scheda">
       <form onSubmit={salva} className="space-y-4">
         <Field label="Titolo" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })}
-               placeholder="Ricomposizione corporea" required />
+               placeholder="Scheda personalizzata" required />
         <label className="block">
           <span className="label">Descrizione</span>
           <textarea className="field min-h-[80px]" value={f.description}
                     onChange={(e) => setF({ ...f, description: e.target.value })}
-                    placeholder="3 sedute a settimana. Recuperi 90-120s sui multiarticolari, 60s sugli isolamenti." />
+                    placeholder="Obiettivo e linee guida della scheda." />
         </label>
         <Field label="Durata (settimane)" type="number" value={f.weeks}
                onChange={(e) => setF({ ...f, weeks: e.target.value })} />
-        <p className="text-sm text-muted">Creo già i tre giorni standard, poi ci aggiungi gli esercizi.</p>
+        <p className="text-sm text-muted">Dopo la creazione aggiungi tu i giorni che ti servono.</p>
         <button className="btn-primary w-full" disabled={busy}>{busy ? 'Creo…' : 'Crea scheda'}</button>
       </form>
     </Modal>

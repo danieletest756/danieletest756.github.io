@@ -124,6 +124,7 @@ create table if not exists public.workout_logs (
   weight_kg numeric,
   reps      int,
   rir       numeric,
+  notes     text,
   created_at timestamptz not null default now()
 );
 create index if not exists workout_logs_idx on public.workout_logs(user_id, item_id, date desc);
@@ -324,8 +325,13 @@ create policy "foto progressi in cancellazione" on storage.objects for delete us
 create or replace function public.cleanup_photo_file()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  delete from storage.objects
-   where bucket_id = 'progress-photos' and name = old.path;
+  -- Non bloccare la cancellazione della misurazione se lo storage nega il delete.
+  begin
+    delete from storage.objects
+     where bucket_id = 'progress-photos' and name = old.path;
+  exception when others then
+    raise notice 'cleanup_photo_file: file non eliminato (%). Continuo comunque.', old.path;
+  end;
   return old;
 end; $$;
 

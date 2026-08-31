@@ -44,7 +44,8 @@ src/
   pages/Esercizi.jsx      libreria con immagini e video      (solo coach)
 supabase/
   schema.sql              tabelle, trigger, funzioni, policy RLS, bucket storage
-  migration_foto_misure.sql  da eseguire sui progetti creati prima delle foto
+  migration_foto_misure.sql       da eseguire sui progetti creati prima delle foto
+  migration_workout_log_notes.sql da eseguire sui progetti creati prima delle note sui carichi
   seed_esercizi.sql       25 esercizi di partenza
 ```
 
@@ -115,7 +116,13 @@ Hosting, dominio e login Google sono volutamente accantonati.
 
 **Chi riprende in mano il progetto: se il database Supabase è stato creato prima delle foto,
 esegui `supabase/migration_foto_misure.sql` nel SQL Editor, altrimenti la pagina Misure non
-trova la tabella `measurement_photos` e le foto non si caricano.**
+trova la tabella `measurement_photos` e le foto non si caricano. Se era stato creato prima
+delle note sui carichi, esegui anche `supabase/migration_workout_log_notes.sql`.**
+
+**La registrazione dei carichi è per giorno, non per serie.** `ModalLog` in Allenamento.jsx
+salva un'unica riga per esercizio al giorno (cancella ed reinserisce su `user_id+item_id+date`),
+con un campo `notes` per le sensazioni. Non è più un elenco di serie separate: se serve
+tornare a registrare serie singole, cambia sia il form sia la lettura in `load()`.
 
 ## Lavori aperti, in ordine di utilità
 
@@ -123,27 +130,28 @@ trova la tabella `measurement_photos` e le foto non si caricano.**
    (sett. 1-2 RIR 3, 3-4 RIR 2, 5-6 RIR 1-2, 7 RIR 1, 8 scarico). Oggi non ha un posto nell'app.
    Idea: campo `current_week` su `workout_plans` e una fascia in cima alla scheda che dice a che
    punto è l'atleta e a che intensità deve tirare questa settimana.
-2. **La seduta in palestra**: timer di recupero (`rest_sec` oggi è solo testo), spunta sugli
-   esercizi già registrati oggi, carichi precompilati con quelli dell'ultima volta.
-3. **Schermata "oggi"**: quale giorno tocca, in base all'ultima seduta registrata.
-4. **Grafico dei carichi per esercizio**, per mostrare la progressione all'atleta.
-5. **PWA**: manifest e icone, così l'app si installa sulla home del telefono.
-6. **Diario alimentare**: spunta dei pasti consumati giorno per giorno.
-7. **Edge Function** per creare gli account atleta dal pannello coach.
+2. **Schermata "oggi"**: quale giorno tocca, in base all'ultima seduta registrata.
+3. **Grafico dei carichi per esercizio**, per mostrare la progressione all'atleta.
+4. **PWA**: manifest e icone, così l'app si installa sulla home del telefono.
+5. **Diario alimentare**: spunta dei pasti consumati giorno per giorno.
+6. **Edge Function** per creare gli account atleta dal pannello coach.
+
+Fatto: **la seduta in palestra** ha ora un timer di recupero (`useTimerRecupero` in
+Allenamento.jsx, parte da solo dopo il salvataggio o a tocco su "Avvia recupero"), la spunta
+verde sugli esercizi già registrati oggi, e il carico precompilato con l'ultima volta quando
+non c'è ancora una riga per oggi.
 
 Difetti noti, piccoli ma reali:
 
 - In Misure ogni calo è colorato di verde, anche quello di coscia e gluteo: per chi sta
   costruendo massa è il contrario di un progresso. Il colore andrebbe deciso in base
   all'obiettivo dell'atleta, non al segno della differenza.
-- "ultima volta X kg" sotto ogni esercizio mostra la **prima** serie dell'ultima seduta, non la
-  migliore né l'ultima: le righe sono ordinate per `set_no` crescente e viene tenuta la prima.
 - I giorni della scheda si riordinano solo cambiando `position` a mano nel database.
 
 ## Cose da non fare
 
 - Non aggiungere TypeScript o cambiare build tool senza chiedere.
 - Non spostare la logica dei permessi nel frontend "per semplicità".
-- Non introdurre dipendenze pesanti: il bundle iniziale sta a ~122 kB gzip e va tenuto basso,
+- Non introdurre dipendenze pesanti: il bundle iniziale sta a ~124 kB gzip e va tenuto basso,
   gli atleti aprono l'app in palestra con la connessione che capita. `recharts` è già caricato
   in lazy loading solo sulla pagina Misure: mantieni quel pattern.

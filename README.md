@@ -17,6 +17,9 @@ Stack: React + Vite + Tailwind + Supabase. Costo: zero.
 
 > **Se avevi già creato il database prima delle foto nelle misurazioni**, esegui anche
 > `supabase/migration_foto_misure.sql`. Sui progetti nuovi non serve: è già dentro `schema.sql`.
+>
+> **Se il database esisteva prima dell'aggiunta delle note sui carichi**, esegui anche
+> `supabase/migration_workout_log_notes.sql`.
 5. Vai in **Project Settings → API** e copia:
    - `Project URL`
    - `anon public key`

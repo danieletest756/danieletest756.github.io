@@ -1,13 +1,24 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+
+const KEY_EMAIL = 'atleti:last-email'
+const KEY_REMEMBER = 'atleti:remember-email'
 
 export default function Login() {
   const [mode, setMode] = useState('login')      // 'login' | 'signup'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [remember, setRemember] = useState(false)
   const [msg, setMsg] = useState(null)           // { type, text }
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    const remembered = localStorage.getItem(KEY_REMEMBER) === '1'
+    const savedEmail = localStorage.getItem(KEY_EMAIL) || ''
+    setRemember(remembered)
+    if (remembered && savedEmail) setEmail(savedEmail)
+  }, [])
 
   async function submit(e) {
     e.preventDefault()
@@ -23,6 +34,14 @@ export default function Login() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
+
+        if (remember) {
+          localStorage.setItem(KEY_REMEMBER, '1')
+          localStorage.setItem(KEY_EMAIL, email.trim())
+        } else {
+          localStorage.removeItem(KEY_REMEMBER)
+          localStorage.removeItem(KEY_EMAIL)
+        }
       }
     } catch (err) {
       setMsg({ type: 'err', text: traduci(err.message) })
@@ -70,6 +89,17 @@ export default function Login() {
                      autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
                      minLength={6} required />
             </label>
+
+            {mode === 'login' && (
+              <label className="flex items-center gap-2 text-sm text-muted">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                />
+                Ricorda il mio account
+              </label>
+            )}
 
             {msg && (
               <p className={`rounded-xl px-3 py-2.5 text-sm ${
