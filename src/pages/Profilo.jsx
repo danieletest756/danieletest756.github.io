@@ -48,7 +48,7 @@ export default function Profilo() {
 
   return (
     <>
-      <Section title="Dati personali">
+      <Section title="Dati personali" accent>
         <form onSubmit={save} className="card space-y-4 p-5">
           <Field label="Nome e cognome" value={form.full_name || ''} onChange={set('full_name')} />
           <div className="grid grid-cols-2 gap-3">

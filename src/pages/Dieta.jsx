@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
-import { Section, Empty, Modal, Field, Spinner, IconPlus, IconEdit, IconTrash } from '../components/ui'
+import { Section, Empty, Modal, Field, Spinner, IconPlus, IconEdit, IconTrash, IconPlate } from '../components/ui'
 import { useToast, useConfirm } from '../components/Feedback'
+import { AccentoIntestazione } from '../components/Decor'
 
 export default function Dieta() {
   const { targetId, canEdit } = useAuth()
@@ -50,6 +51,7 @@ export default function Dieta() {
         title="Nessun piano alimentare"
         hint={canEdit ? 'Imposta i macro e i pasti per questo atleta.' : 'Il tuo coach non ha ancora caricato il piano.'}
         action={canEdit && <button onClick={() => setEditPlan({})} className="btn-primary">Crea piano</button>}
+        icon={IconPlate}
       >
         <ModalPiano plan={editPlan} userId={targetId} onClose={() => setEditPlan(null)} onDone={load} />
       </Empty>
@@ -59,7 +61,8 @@ export default function Dieta() {
   return (
     <>
       <Section>
-        <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="relative mb-4 flex items-start justify-between gap-3">
+          <AccentoIntestazione principale="saffron" />
           <div>
             <h1 className="font-cond text-[30px] font-bold leading-none">{plan.title}</h1>
             {plan.water_l && <p className="mt-1.5 text-sm text-muted">Acqua: {plan.water_l} litri al giorno</p>}

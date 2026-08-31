@@ -3,8 +3,9 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import {
   Section, Empty, Modal, Field, Spinner,
-  IconPlus, IconPlay, IconTrash, IconEdit, IconChevron, IconCheck, IconTimer,
+  IconPlus, IconPlay, IconTrash, IconEdit, IconChevron, IconCheck, IconTimer, IconDumbbell,
 } from '../components/ui'
+import { AccentoIntestazione } from '../components/Decor'
 import { useToast, useConfirm } from '../components/Feedback'
 
 const oggi = () => new Date().toISOString().slice(0, 10)
@@ -88,6 +89,7 @@ export default function Allenamento() {
         title="Nessuna scheda attiva"
         hint={canEdit ? 'Crea la scheda per questo atleta.' : 'Il tuo coach non ha ancora caricato la scheda.'}
         action={canEdit && <button onClick={() => setNewPlan(true)} className="btn-primary">Crea scheda</button>}
+        icon={IconDumbbell}
       >
         <ModalPiano open={newPlan} onClose={() => setNewPlan(false)} userId={targetId} onDone={load} />
       </Empty>
@@ -115,7 +117,8 @@ export default function Allenamento() {
   return (
     <>
       <Section>
-        <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="relative mb-4 flex items-start justify-between gap-3">
+          <AccentoIntestazione principale="brand" />
           <div>
             <h1 className="font-cond text-[30px] font-bold leading-none">{plan.title}</h1>
             {plan.description && <p className="mt-2 text-sm leading-relaxed text-muted">{plan.description}</p>}

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { AccentoIntestazione } from './Decor'
 
 /* ---------- Icone (SVG inline, niente dipendenze) ---------- */
 const I = (p) => ({ width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
@@ -44,11 +45,14 @@ export const IconCamera = (p) => (
 )
 
 /* ---------- Blocchi ---------- */
-export function Section({ title, action, children }) {
+/** `accent`: vero (o "brand"/"saffron") disegna una sfumatura dietro al titolo.
+    Usalo solo sul primo Section di una pagina, non su ogni sotto-sezione. */
+export function Section({ title, action, accent, children }) {
   return (
     <section className="mb-7">
       {(title || action) && (
-        <div className="mb-2.5 flex items-end justify-between gap-3">
+        <div className="relative mb-2.5 flex items-end justify-between gap-3">
+          {accent && <AccentoIntestazione principale={accent === true ? 'brand' : accent} />}
           {title && <h2 className="font-cond text-[22px] font-semibold leading-none">{title}</h2>}
           {action}
         </div>
@@ -58,10 +62,15 @@ export function Section({ title, action, children }) {
   )
 }
 
-export function Empty({ title, hint, action, children }) {
+export function Empty({ title, hint, action, icon: Icon, children }) {
   return (
     <>
       <div className="card p-7 text-center">
+        {Icon && (
+          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-brandsoft text-brand">
+            <Icon width={30} height={30} />
+          </div>
+        )}
         <p className="font-medium">{title}</p>
         {hint && <p className="mt-1.5 text-sm leading-relaxed text-muted">{hint}</p>}
         {action && <div className="mt-4 flex justify-center">{action}</div>}

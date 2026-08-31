@@ -30,6 +30,7 @@ export default function Esercizi() {
 
       <Section
         title="Libreria esercizi"
+        accent
         action={isGod && (
           <button onClick={() => setEdit({})} className="btn-primary px-3 py-2 text-sm">
             <IconPlus width={17} height={17} /> Nuovo

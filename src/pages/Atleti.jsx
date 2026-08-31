@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
-import { Section, Empty, Modal, Spinner, IconChevron } from '../components/ui'
+import { Section, Empty, Modal, Spinner, IconChevron, IconTeam } from '../components/ui'
 import { useToast } from '../components/Feedback'
 
 export default function Atleti() {
@@ -28,7 +28,7 @@ export default function Atleti() {
 
   return (
     <>
-      <Section title={`Atleti · ${atleti.length}`}>
+      <Section title={`Atleti · ${atleti.length}`} accent>
         <div className="mb-4 flex gap-2">
           <input className="field" placeholder="Cerca per nome" value={q} onChange={(e) => setQ(e.target.value)} />
           <Link to="/esercizi" className="btn-ghost shrink-0 px-3 text-sm">Esercizi</Link>
@@ -38,6 +38,7 @@ export default function Atleti() {
           <Empty
             title="Ancora nessun atleta"
             hint="Fai registrare i tuoi atleti dalla schermata di accesso: appariranno qui appena creano l'account."
+            icon={IconTeam}
           />
         ) : (
           <ul className="space-y-3">

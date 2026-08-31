@@ -58,8 +58,11 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-ink px-5 py-10">
-      <div className="w-full max-w-sm">
+    <div
+      className="relative flex min-h-dvh items-center justify-center bg-ink bg-cover bg-center px-5 py-10"
+      style={{ backgroundImage: "linear-gradient(180deg, rgba(16,26,43,.55), rgba(16,26,43,.92)), url('/img/login-bg.jpg')" }}
+    >
+      <div className="relative w-full max-w-sm">
         <div className="mb-8">
           <h1 className="font-cond text-[46px] font-bold leading-[0.95] text-white">
             Allenamento<br />e alimentazione

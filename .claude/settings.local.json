@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(npm run build)"
+      "PowerShell(npm run build)",
+      "Bash(powershell -Command \"Get-Command chromium-cli -ErrorAction SilentlyContinue; Get-ChildItem -Path 'C:\\\\Users\\\\bucco\\\\AppData\\\\Roaming\\\\npm' -Filter '*chrom*' -ErrorAction SilentlyContinue\")",
+      "Bash(npm ls *)",
+      "Bash(node -e \"console.log\\(require.resolve\\('playwright'\\)\\)\")"
     ]
   }
 }

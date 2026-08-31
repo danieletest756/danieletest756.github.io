@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { IconDumbbell, IconPlate, IconRuler, IconUser, IconTeam } from './ui'
+import { Sfumatura } from './Decor'
 
 const tabs = [
   { to: '/allenamento', label: 'Scheda',  Icon: IconDumbbell },
@@ -16,8 +17,9 @@ export default function Layout() {
 
   return (
     <div className="min-h-dvh pb-[env(safe-area-inset-bottom)]">
-      <header className="sticky top-0 z-30 border-b border-line/70 bg-canvas/90 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+      <header className="sticky top-0 z-30 overflow-hidden border-b border-line/70 bg-canvas/90 backdrop-blur">
+        <Sfumatura opacita={0.12} className="-right-6 -top-10 h-24 w-24" />
+        <div className="relative mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
           <div className="leading-tight">
             <p className="font-cond text-[21px] font-semibold">
               {viewing ? viewing.full_name || viewing.email : 'La tua scheda'}

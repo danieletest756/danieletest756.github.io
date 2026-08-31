@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
-import { Section, Modal, Field, Empty, Spinner, IconPlus, IconTrash } from '../components/ui'
+import { Section, Modal, Field, Empty, Spinner, IconPlus, IconTrash, IconRuler } from '../components/ui'
 import { useToast, useConfirm } from '../components/Feedback'
 import { SceltaFoto, Galleria } from '../components/FotoMisura'
 import { caricaFoto, urlFirmati } from '../lib/foto'
@@ -127,6 +127,7 @@ export default function Misure() {
     <>
       <Section
         title="Misurazioni"
+        accent
         action={
           <button onClick={() => setOpen(true)} className="btn-primary px-3 py-2 text-sm">
             <IconPlus width={17} height={17} /> Nuova
@@ -138,6 +139,7 @@ export default function Misure() {
             title="Nessuna misurazione registrata"
             hint="Prendi le misure la mattina, a digiuno, sempre nelle stesse condizioni. Ogni 4 settimane, non ogni settimana."
             action={<button onClick={() => setOpen(true)} className="btn-primary">Aggiungi la prima</button>}
+            icon={IconRuler}
           />
         ) : (
           <>
