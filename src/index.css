@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    overscroll-behavior-y: none;
+  }
+  /* niente zoom automatico su iOS quando si tocca un input */
+  input, select, textarea { font-size: 16px; }
+  :focus-visible { outline: 2px solid #1F4FD8; outline-offset: 2px; }
+}
+
+@layer components {
+  .card   { @apply bg-surface rounded-2xl shadow-card; }
+  .field  { @apply w-full rounded-xl border border-line bg-white px-3 py-2.5 text-ink
+                   placeholder:text-muted/60 focus:border-brand focus:outline-none; }
+  .label  { @apply block text-[13px] font-medium text-muted mb-1.5; }
+  .btn    { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+                   font-semibold transition-colors disabled:opacity-50; }
+  .btn-primary { @apply btn bg-brand text-white hover:bg-[#1A44BC] active:bg-[#173BA6]; }
+  .btn-ghost   { @apply btn border border-line bg-white text-ink hover:bg-canvas; }
+  .btn-danger  { @apply btn border border-bad/30 bg-white text-bad hover:bg-bad/5; }
+  /* la cifra "da tabellone": serie, ripetizioni, carichi */
+  .stat   { @apply font-cond font-semibold tabular-nums leading-none tracking-tight; }
+}
+
+/* le notifiche entrano dall'alto, dove non coprono i pulsanti delle finestre */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-12px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-toast { animation: toast-in .18s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
