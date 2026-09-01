@@ -115,12 +115,18 @@ src/
 
 **Permessi** (gestiti da Postgres, non dal frontend: non si aggirano dal browser):
 
-| | Atleta | Coach |
-|---|---|---|
-| Il proprio profilo e le proprie misure | legge e scrive | legge e scrive di tutti |
-| Scheda e dieta | solo lettura | crea e modifica per chiunque |
-| Carichi registrati | scrive i suoi | li vede tutti |
-| Libreria esercizi | solo lettura | gestisce |
+| | Atleta | Semi-god | Coach (god) |
+|---|---|---|---|
+| Il proprio profilo e le proprie misure | legge e scrive | legge e scrive | legge e scrive di tutti |
+| Scheda e dieta | solo lettura | crea e modifica **solo le proprie** | crea e modifica per chiunque |
+| Carichi registrati | scrive i suoi | scrive i suoi | li vede tutti |
+| Libreria esercizi | solo lettura | solo lettura | gestisce |
+| Lista Atleti | — | — | sì |
+
+Il **semi-god** è un atleta a cui hai dato il permesso di autogestirsi (modifica la propria
+scheda/dieta come faresti tu), ma resta un singolo atleta: non vede gli altri, non tocca la
+libreria esercizi. Si assegna con `update profiles set role = 'semi_god' where email = '...'`
+(vedi `supabase/schema.sql` o `supabase/migration_semi_god.sql` se il progetto è più vecchio).
 
 ## Cose da sapere
 

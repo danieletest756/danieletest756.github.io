@@ -32,13 +32,16 @@ export function AuthProvider({ children }) {
   }, [loadProfile])
 
   const isGod = profile?.role === 'god'
+  // Come il coach, ma può modificare solo i propri dati: niente lista Atleti,
+  // niente scheda/dieta di nessun altro. Vedi supabase/migration_semi_god.sql.
+  const isSemiGod = profile?.role === 'semi_god'
   // Di chi stiamo guardando i dati: l'atleta selezionato dal coach, oppure me stesso
   const target = isGod && viewing ? viewing : profile
   const targetId = target?.id ?? null
-  const canEdit = isGod   // solo il coach modifica schede e diete
+  const canEdit = isGod || isSemiGod   // il semi-god modifica solo se stesso: targetId è sempre il suo id
 
   const value = {
-    session, profile, loading, isGod, viewing, setViewing, target, targetId, canEdit,
+    session, profile, loading, isGod, isSemiGod, viewing, setViewing, target, targetId, canEdit,
     refreshProfile: () => session && loadProfile(session.user.id),
     signOut: () => supabase.auth.signOut(),
   }

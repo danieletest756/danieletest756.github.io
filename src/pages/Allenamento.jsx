@@ -3,10 +3,11 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import {
   Section, Empty, Modal, Field, Spinner,
-  IconPlus, IconPlay, IconTrash, IconEdit, IconChevron, IconCheck, IconTimer, IconDumbbell,
+  IconPlus, IconPlay, IconTrash, IconEdit, IconChevron, IconCheck, IconTimer, IconDumbbell, IconInfo,
 } from '../components/ui'
-import { AccentoIntestazione } from '../components/Decor'
 import { useToast, useConfirm } from '../components/Feedback'
+import IntestazioneFoto, { SfondoFoto } from '../components/IntestazioneFoto'
+import fotoScheda from '../assets/bg/scheda.jpg'
 
 const oggi = () => new Date().toISOString().slice(0, 10)
 
@@ -45,7 +46,8 @@ export default function Allenamento() {
   const [logFor, setLogFor] = useState(null)
   const [editItem, setEditItem] = useState(null)
   const [editDay, setEditDay] = useState(null)
-  const [newPlan, setNewPlan] = useState(false)
+  const [editPlan, setEditPlan] = useState(null)
+  const [infoAperto, setInfoAperto] = useState(false)
   const toast = useToast()
   const chiedi = useConfirm()
   const timer = useTimerRecupero()
@@ -85,14 +87,17 @@ export default function Allenamento() {
 
   if (!plan) {
     return (
-      <Empty
-        title="Nessuna scheda attiva"
-        hint={canEdit ? 'Crea la scheda per questo atleta.' : 'Il tuo coach non ha ancora caricato la scheda.'}
-        action={canEdit && <button onClick={() => setNewPlan(true)} className="btn-primary">Crea scheda</button>}
-        icon={IconDumbbell}
-      >
-        <ModalPiano open={newPlan} onClose={() => setNewPlan(false)} userId={targetId} onDone={load} />
-      </Empty>
+      <>
+        <SfondoFoto src={fotoScheda} />
+        <Empty
+          title="Nessuna scheda attiva"
+          hint={canEdit ? 'Crea la scheda per questo atleta.' : 'Il tuo coach non ha ancora caricato la scheda.'}
+          action={canEdit && <button onClick={() => setEditPlan({})} className="btn-primary">Crea scheda</button>}
+          icon={IconDumbbell}
+        >
+          <ModalPiano plan={editPlan} onClose={() => setEditPlan(null)} userId={targetId} onDone={load} />
+        </Empty>
+      </>
     )
   }
 
@@ -116,19 +121,28 @@ export default function Allenamento() {
 
   return (
     <>
-      <Section>
-        <div className="relative mb-4 flex items-start justify-between gap-3">
-          <AccentoIntestazione principale="brand" />
-          <div>
-            <h1 className="font-cond text-[30px] font-bold leading-none">{plan.title}</h1>
-            {plan.description && <p className="mt-2 text-sm leading-relaxed text-muted">{plan.description}</p>}
-          </div>
-          {canEdit && (
-            <button onClick={eliminaScheda} className="btn-danger px-3 py-2 text-sm">
-              <IconTrash width={16} height={16} /> Elimina scheda
+      <IntestazioneFoto
+        src={fotoScheda}
+        titolo={plan.title}
+        azione={canEdit && (
+          <div className="flex gap-2">
+            <button onClick={() => setEditPlan(plan)} className="btn-ghost px-3 py-2 text-sm">
+              <IconEdit width={16} height={16} /> Modifica
             </button>
-          )}
-        </div>
+            <button onClick={eliminaScheda} className="btn-danger px-3 py-2 text-sm" aria-label="Elimina scheda">
+              <IconTrash width={16} height={16} />
+            </button>
+          </div>
+        )}
+      />
+
+      <Section>
+        {plan.description && (
+          <button onClick={() => setInfoAperto(true)}
+                  className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[13px] font-medium text-brand shadow-sm">
+            <IconInfo width={15} height={15} /> Come leggere la scheda
+          </button>
+        )}
 
         {/* selettore giorni */}
         <div className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1">
@@ -147,7 +161,7 @@ export default function Allenamento() {
           {canEdit && (
             <button
               onClick={() => setEditDay({ plan_id: plan.id, position: days.length + 1 })}
-              className="shrink-0 rounded-xl border border-dashed border-line px-4 text-muted"
+              className="shrink-0 rounded-xl border border-dashed border-line bg-white px-4 text-muted"
               aria-label="Aggiungi giorno"
             >
               <IconPlus />
@@ -156,14 +170,14 @@ export default function Allenamento() {
         </div>
 
         {giorno?.notes && (
-          <p className="mb-4 rounded-xl bg-brandsoft px-4 py-3 text-sm leading-relaxed text-ink/80">
+          <p className="mb-4 whitespace-pre-line rounded-xl bg-brandsoft px-4 py-3 text-sm leading-relaxed text-ink/80">
             {giorno.notes}
           </p>
         )}
 
         {canEdit && giorno && (
           <button onClick={() => setEditDay(giorno)}
-                  className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted">
+                  className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[13px] font-medium text-muted shadow-sm">
             <IconEdit width={15} height={15} /> Modifica il giorno «{giorno.title}»
           </button>
         )}
@@ -171,17 +185,11 @@ export default function Allenamento() {
         {lista.length === 0 ? (
           <Empty title="Giorno vuoto" hint={canEdit ? 'Aggiungi gli esercizi qui sotto.' : 'Nessun esercizio previsto.'} />
         ) : (
-          <ol className="space-y-3">
-            {lista.map((it, i) => (
-              <Esercizio
-                key={it.id} item={it} n={i + 1} ultimo={ultimi[it.id]} oggi={oggi()}
-                canEdit={canEdit}
-                onLog={() => setLogFor(it)}
-                onEdit={() => setEditItem(it)}
-                onTimer={() => timer.avvia(it.rest_sec, it.exercise?.name)}
-              />
-            ))}
-          </ol>
+          <GruppiEsercizi
+            lista={lista} ultimi={ultimi} oggi={oggi()} canEdit={canEdit}
+            onLog={setLogFor} onEdit={setEditItem}
+            onTimer={(it) => timer.avvia(it.rest_sec, it.exercise?.name)}
+          />
         )}
 
         {canEdit && giorno && (
@@ -202,6 +210,10 @@ export default function Allenamento() {
         onClose={() => setEditDay(null)}
         onDone={(eliminato) => { if (eliminato) setTab(0); load() }}
       />
+      <Modal open={infoAperto} onClose={() => setInfoAperto(false)} title="Come leggere la scheda">
+        <p className="whitespace-pre-line text-sm leading-relaxed text-muted">{plan.description}</p>
+      </Modal>
+      <ModalPiano plan={editPlan} userId={targetId} onClose={() => setEditPlan(null)} onDone={load} />
       <BarraRecupero timer={timer} />
     </>
   )
@@ -301,6 +313,40 @@ function ModalGiorno({ day, onClose, onDone }) {
   )
 }
 
+/* Raggruppa gli esercizi del giorno per gruppo muscolare (nell'ordine in cui
+   compaiono la prima volta), rinumerandoli nell'ordine visivo risultante:
+   i numeri restano sempre 1,2,3... leggendo la pagina dall'alto in basso. */
+function GruppiEsercizi({ lista, ultimi, oggi, canEdit, onLog, onEdit, onTimer }) {
+  const gruppi = {}
+  lista.forEach((it) => {
+    const nome = it.exercise?.muscle_group || 'Altro'
+    ;(gruppi[nome] ||= []).push(it)
+  })
+
+  let n = 0
+  return Object.entries(gruppi).map(([nome, esercizi]) => (
+    <div key={nome} className="mb-5 last:mb-0">
+      <p className="mb-2 inline-block rounded-lg bg-white/90 px-2.5 py-1 text-[12.5px] font-semibold uppercase tracking-wide text-muted">
+        {nome}
+      </p>
+      <ol className="space-y-3">
+        {esercizi.map((it) => {
+          n += 1
+          return (
+            <Esercizio
+              key={it.id} item={it} n={n} ultimo={ultimi[it.id]} oggi={oggi}
+              canEdit={canEdit}
+              onLog={() => onLog(it)}
+              onEdit={() => onEdit(it)}
+              onTimer={() => onTimer(it)}
+            />
+          )
+        })}
+      </ol>
+    </div>
+  ))
+}
+
 /* ---------------- riga esercizio ---------------- */
 function Esercizio({ item, n, ultimo, oggi, canEdit, onLog, onEdit, onTimer }) {
   const [aperto, setAperto] = useState(false)
@@ -322,7 +368,7 @@ function Esercizio({ item, n, ultimo, oggi, canEdit, onLog, onEdit, onTimer }) {
           )}
         </span>
         <span className="text-right">
-          <span className="stat block text-[22px]">{item.sets} × {item.reps}</span>
+          <span className="stat block text-[22px]">{item.sets} serie × {item.reps} rip.</span>
           {item.rir && <span className="text-[12px] text-muted">RIR {item.rir}</span>}
         </span>
         <span className={`text-muted transition-transform ${aperto ? 'rotate-90' : ''}`}>
@@ -436,7 +482,7 @@ function ModalLog({ item, userId, onClose, onDone, onSalvato }) {
   return (
     <Modal open={!!item} onClose={onClose} title={item.exercise?.name ?? 'Esercizio'}>
       <p className="-mt-2 mb-1 text-sm text-muted">
-        Obiettivo di oggi: {item.sets} × {item.reps}{item.rir ? ` a RIR ${item.rir}` : ''}
+        Obiettivo di oggi: {item.sets} serie da {item.reps} ripetizioni{item.rir ? ` a RIR ${item.rir}` : ''}
       </p>
       {origine === 'ultima' && (
         <p className="mb-4 text-[13px] text-brand">Precompilato con i valori dell'ultima volta: modifica se serve.</p>
@@ -581,38 +627,53 @@ function ModalItem({ item, onClose, onDone }) {
 }
 
 /* ---------------- nuova scheda ---------------- */
-function ModalPiano({ open, onClose, userId, onDone }) {
+function ModalPiano({ plan, userId, onClose, onDone }) {
   const [f, setF] = useState({ title: '', description: '', weeks: 8 })
   const [busy, setBusy] = useState(false)
   const toast = useToast()
 
+  useEffect(() => {
+    if (plan) setF({
+      title: plan.title ?? '', description: plan.description ?? '', weeks: plan.weeks ?? 8,
+    })
+  }, [plan])
+
+  if (!plan) return null
+  const nuovo = !plan.id
+
   async function salva(e) {
     e.preventDefault()
     setBusy(true)
-    const { error } = await supabase.from('workout_plans')
-      .insert({ user_id: userId, title: f.title, description: f.description, weeks: Number(f.weeks), is_active: true })
-      .select().single()
+    const p = { title: f.title, description: f.description || null, weeks: Number(f.weeks) }
+    const { error } = nuovo
+      ? await supabase.from('workout_plans').insert({ ...p, user_id: userId, is_active: true })
+      : await supabase.from('workout_plans').update(p).eq('id', plan.id)
     setBusy(false)
     if (error) return toast.err(error)
-    toast.ok('Scheda creata')
+    toast.ok(nuovo ? 'Scheda creata' : 'Scheda aggiornata')
     onClose(); onDone()
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Nuova scheda">
+    <Modal open onClose={onClose} title={nuovo ? 'Nuova scheda' : 'Modifica scheda'}>
       <form onSubmit={salva} className="space-y-4">
         <Field label="Titolo" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })}
                placeholder="Scheda personalizzata" required />
         <label className="block">
-          <span className="label">Descrizione</span>
-          <textarea className="field min-h-[80px]" value={f.description}
+          <span className="label">Come leggere la scheda</span>
+          <textarea className="field min-h-[140px]" value={f.description}
                     onChange={(e) => setF({ ...f, description: e.target.value })}
-                    placeholder="Obiettivo e linee guida della scheda." />
+                    placeholder="Legenda RIR, recuperi, riscaldamento, progressione delle settimane..." />
+          <span className="mt-1 block text-xs text-muted">
+            L'atleta la legge aprendo "Come leggere la scheda" sotto al titolo.
+          </span>
         </label>
         <Field label="Durata (settimane)" type="number" value={f.weeks}
                onChange={(e) => setF({ ...f, weeks: e.target.value })} />
-        <p className="text-sm text-muted">Dopo la creazione aggiungi tu i giorni che ti servono.</p>
-        <button className="btn-primary w-full" disabled={busy}>{busy ? 'Creo…' : 'Crea scheda'}</button>
+        {nuovo && <p className="text-sm text-muted">Dopo la creazione aggiungi tu i giorni che ti servono.</p>}
+        <button className="btn-primary w-full" disabled={busy}>
+          {busy ? 'Salvo…' : nuovo ? 'Crea scheda' : 'Salva modifiche'}
+        </button>
       </form>
     </Modal>
   )

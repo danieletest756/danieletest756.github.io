@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { Section, Field, Spinner } from '../components/ui'
 import { useToast, useConfirm } from '../components/Feedback'
+import IntestazioneFoto from '../components/IntestazioneFoto'
+import fotoProfilo from '../assets/bg/profilo.jpg'
 
 export default function Profilo() {
   const { target, targetId, isGod, viewing, signOut, refreshProfile } = useAuth()
@@ -48,7 +50,9 @@ export default function Profilo() {
 
   return (
     <>
-      <Section title="Dati personali" accent>
+      <IntestazioneFoto src={fotoProfilo} titolo={viewing ? `Profilo di ${form.full_name || 'atleta'}` : 'Dati personali'} />
+
+      <Section>
         <form onSubmit={save} className="card space-y-4 p-5">
           <Field label="Nome e cognome" value={form.full_name || ''} onChange={set('full_name')} />
           <div className="grid grid-cols-2 gap-3">

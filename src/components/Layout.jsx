@@ -10,14 +10,23 @@ const tabs = [
   { to: '/profilo',     label: 'Profilo', Icon: IconUser },
 ]
 
+/*
+  Intestazione e barra in basso non sono più "sticky"/"fixed" rispetto al
+  viewport: su alcuni browser mobili quel trucco può cedere (la barra scorre
+  via insieme al contenuto). Qui invece è tutta la pagina a essere un blocco
+  flex a tutta altezza: header e nav prendono lo spazio che gli serve, <main>
+  si prende il resto e scorre al suo interno. Così la barra non è "ancorata al
+  viewport mentre il resto scorre attorno": è semplicemente fuori dalla zona
+  che scorre, e non può scapparne.
+*/
 export default function Layout() {
   const { profile, isGod, viewing, setViewing } = useAuth()
   const navigate = useNavigate()
   const items = isGod ? [...tabs, { to: '/atleti', label: 'Atleti', Icon: IconTeam }] : tabs
 
   return (
-    <div className="min-h-dvh pb-[env(safe-area-inset-bottom)]">
-      <header className="sticky top-0 z-30 overflow-hidden border-b border-line/70 bg-canvas/90 backdrop-blur">
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <header className="relative shrink-0 overflow-hidden border-b border-line/70 bg-canvas/90 backdrop-blur">
         <Sfumatura opacita={0.12} className="-right-6 -top-10 h-24 w-24" />
         <div className="relative mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
           <div className="leading-tight">
@@ -39,11 +48,11 @@ export default function Layout() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 pb-28 pt-5">
+      <main className="mx-auto w-full max-w-3xl flex-1 overflow-y-auto px-4 pb-6 pt-5">
         <Outlet />
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 backdrop-blur">
+      <nav className="shrink-0 border-t border-line bg-surface/95 backdrop-blur">
         <div className="mx-auto flex max-w-3xl pb-[env(safe-area-inset-bottom)]">
           {items.map(({ to, label, Icon }) => (
             <NavLink

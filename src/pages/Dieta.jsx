@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { Section, Empty, Modal, Field, Spinner, IconPlus, IconEdit, IconTrash, IconPlate } from '../components/ui'
 import { useToast, useConfirm } from '../components/Feedback'
-import { AccentoIntestazione } from '../components/Decor'
+import IntestazioneFoto, { SfondoFoto } from '../components/IntestazioneFoto'
+import fotoDieta from '../assets/bg/dieta.jpg'
 
 export default function Dieta() {
   const { targetId, canEdit } = useAuth()
@@ -47,33 +48,34 @@ export default function Dieta() {
 
   if (!plan) {
     return (
-      <Empty
-        title="Nessun piano alimentare"
-        hint={canEdit ? 'Imposta i macro e i pasti per questo atleta.' : 'Il tuo coach non ha ancora caricato il piano.'}
-        action={canEdit && <button onClick={() => setEditPlan({})} className="btn-primary">Crea piano</button>}
-        icon={IconPlate}
-      >
-        <ModalPiano plan={editPlan} userId={targetId} onClose={() => setEditPlan(null)} onDone={load} />
-      </Empty>
+      <>
+        <SfondoFoto src={fotoDieta} />
+        <Empty
+          title="Nessun piano alimentare"
+          hint={canEdit ? 'Imposta i macro e i pasti per questo atleta.' : 'Il tuo coach non ha ancora caricato il piano.'}
+          action={canEdit && <button onClick={() => setEditPlan({})} className="btn-primary">Crea piano</button>}
+          icon={IconPlate}
+        >
+          <ModalPiano plan={editPlan} userId={targetId} onClose={() => setEditPlan(null)} onDone={load} />
+        </Empty>
+      </>
     )
   }
 
   return (
     <>
-      <Section>
-        <div className="relative mb-4 flex items-start justify-between gap-3">
-          <AccentoIntestazione principale="saffron" />
-          <div>
-            <h1 className="font-cond text-[30px] font-bold leading-none">{plan.title}</h1>
-            {plan.water_l && <p className="mt-1.5 text-sm text-muted">Acqua: {plan.water_l} litri al giorno</p>}
-          </div>
-          {canEdit && (
-            <button onClick={() => setEditPlan(plan)} className="btn-ghost px-3 py-2 text-sm">
-              <IconEdit width={16} height={16} /> Modifica
-            </button>
-          )}
-        </div>
+      <IntestazioneFoto
+        src={fotoDieta}
+        titolo={plan.title}
+        sottotitolo={plan.water_l && `Acqua: ${plan.water_l} litri al giorno`}
+        azione={canEdit && (
+          <button onClick={() => setEditPlan(plan)} className="btn-ghost px-3 py-2 text-sm">
+            <IconEdit width={16} height={16} /> Modifica
+          </button>
+        )}
+      />
 
+      <Section>
         {/* obiettivo macro */}
         <div className="card mb-5 p-5">
           <div className="mb-4 flex items-end gap-2">

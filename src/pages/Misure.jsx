@@ -6,6 +6,8 @@ import { Section, Modal, Field, Empty, Spinner, IconPlus, IconTrash, IconRuler }
 import { useToast, useConfirm } from '../components/Feedback'
 import { SceltaFoto, Galleria } from '../components/FotoMisura'
 import { caricaFoto, urlFirmati } from '../lib/foto'
+import IntestazioneFoto from '../components/IntestazioneFoto'
+import fotoMisure from '../assets/bg/misure.jpg'
 
 const CAMPI = [
   { k: 'weight_kg', l: 'Peso',        u: 'kg' },
@@ -125,15 +127,17 @@ export default function Misure() {
 
   return (
     <>
-      <Section
-        title="Misurazioni"
-        accent
-        action={
+      <IntestazioneFoto
+        src={fotoMisure}
+        titolo="Misurazioni"
+        azione={
           <button onClick={() => setOpen(true)} className="btn-primary px-3 py-2 text-sm">
             <IconPlus width={17} height={17} /> Nuova
           </button>
         }
-      >
+      />
+
+      <Section>
         {rows.length === 0 ? (
           <Empty
             title="Nessuna misurazione registrata"

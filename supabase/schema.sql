@@ -8,7 +8,7 @@ create table if not exists public.profiles (
   id           uuid primary key references auth.users(id) on delete cascade,
   email        text,
   full_name    text,
-  role         text not null default 'atleta' check (role in ('atleta','god')),
+  role         text not null default 'atleta' check (role in ('atleta','god','semi_god')),
   birth_date   date,
   sex          text check (sex in ('F','M','altro')),
   height_cm    numeric,
@@ -38,6 +38,13 @@ create trigger on_auth_user_created
 create or replace function public.is_god()
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'god');
+$$;
+
+-- Semi-god: stessi permessi di scrittura del god, ma solo sui propri dati.
+-- Non vede né tocca gli altri atleti: niente lista Atleti, niente libreria esercizi.
+create or replace function public.is_semi_god()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'semi_god');
 $$;
 
 -- ---------- 2. MISURAZIONI ----------
@@ -219,7 +226,8 @@ create policy wp_select on public.workout_plans for select
   using (user_id = auth.uid() or public.is_god());
 drop policy if exists wp_write on public.workout_plans;
 create policy wp_write on public.workout_plans for all
-  using (public.is_god()) with check (public.is_god());
+  using (public.is_god() or (public.is_semi_god() and user_id = auth.uid()))
+  with check (public.is_god() or (public.is_semi_god() and user_id = auth.uid()));
 
 drop policy if exists wd_select on public.workout_days;
 create policy wd_select on public.workout_days for select using (
@@ -227,7 +235,10 @@ create policy wd_select on public.workout_days for select using (
     select 1 from public.workout_plans p where p.id = plan_id and p.user_id = auth.uid()));
 drop policy if exists wd_write on public.workout_days;
 create policy wd_write on public.workout_days for all
-  using (public.is_god()) with check (public.is_god());
+  using (public.is_god() or (public.is_semi_god() and exists (
+    select 1 from public.workout_plans p where p.id = plan_id and p.user_id = auth.uid())))
+  with check (public.is_god() or (public.is_semi_god() and exists (
+    select 1 from public.workout_plans p where p.id = plan_id and p.user_id = auth.uid())));
 
 drop policy if exists wi_select on public.workout_items;
 create policy wi_select on public.workout_items for select using (
@@ -237,7 +248,12 @@ create policy wi_select on public.workout_items for select using (
     where d.id = day_id and p.user_id = auth.uid()));
 drop policy if exists wi_write on public.workout_items;
 create policy wi_write on public.workout_items for all
-  using (public.is_god()) with check (public.is_god());
+  using (public.is_god() or (public.is_semi_god() and exists (
+    select 1 from public.workout_days d join public.workout_plans p on p.id = d.plan_id
+    where d.id = day_id and p.user_id = auth.uid())))
+  with check (public.is_god() or (public.is_semi_god() and exists (
+    select 1 from public.workout_days d join public.workout_plans p on p.id = d.plan_id
+    where d.id = day_id and p.user_id = auth.uid())));
 
 -- LOG CARICHI: l'atleta scrive i suoi, il god li vede
 drop policy if exists wl_all on public.workout_logs;
@@ -251,7 +267,8 @@ create policy dp_select on public.diet_plans for select
   using (user_id = auth.uid() or public.is_god());
 drop policy if exists dp_write on public.diet_plans;
 create policy dp_write on public.diet_plans for all
-  using (public.is_god()) with check (public.is_god());
+  using (public.is_god() or (public.is_semi_god() and user_id = auth.uid()))
+  with check (public.is_god() or (public.is_semi_god() and user_id = auth.uid()));
 
 drop policy if exists dm_select on public.diet_meals;
 create policy dm_select on public.diet_meals for select using (
@@ -259,7 +276,10 @@ create policy dm_select on public.diet_meals for select using (
     select 1 from public.diet_plans p where p.id = plan_id and p.user_id = auth.uid()));
 drop policy if exists dm_write on public.diet_meals;
 create policy dm_write on public.diet_meals for all
-  using (public.is_god()) with check (public.is_god());
+  using (public.is_god() or (public.is_semi_god() and exists (
+    select 1 from public.diet_plans p where p.id = plan_id and p.user_id = auth.uid())))
+  with check (public.is_god() or (public.is_semi_god() and exists (
+    select 1 from public.diet_plans p where p.id = plan_id and p.user_id = auth.uid())));
 
 drop policy if exists df_select on public.diet_foods;
 create policy df_select on public.diet_foods for select using (
@@ -269,7 +289,12 @@ create policy df_select on public.diet_foods for select using (
     where m.id = meal_id and p.user_id = auth.uid()));
 drop policy if exists df_write on public.diet_foods;
 create policy df_write on public.diet_foods for all
-  using (public.is_god()) with check (public.is_god());
+  using (public.is_god() or (public.is_semi_god() and exists (
+    select 1 from public.diet_meals m join public.diet_plans p on p.id = m.plan_id
+    where m.id = meal_id and p.user_id = auth.uid())))
+  with check (public.is_god() or (public.is_semi_god() and exists (
+    select 1 from public.diet_meals m join public.diet_plans p on p.id = m.plan_id
+    where m.id = meal_id and p.user_id = auth.uid())));
 
 -- ============================================================
 --  STORAGE per le immagini degli esercizi (bucket pubblico)
@@ -343,4 +368,8 @@ create trigger on_measurement_photo_deleted
 -- ============================================================
 --  ULTIMO PASSO — dopo esserti registrato nell'app, esegui:
 --  update public.profiles set role = 'god' where email = 'TUA@EMAIL.IT';
+--
+--  Per dare a un atleta il permesso di modificare la propria scheda/dieta
+--  (ma solo la propria: niente lista Atleti, niente libreria esercizi):
+--  update public.profiles set role = 'semi_god' where email = 'ATLETA@EMAIL.IT';
 -- ============================================================

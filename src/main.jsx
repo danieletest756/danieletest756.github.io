@@ -17,3 +17,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </React.StrictMode>
 )
+
+// PWA: senza questo, Android non offre mai "Installa app" e su iPhone
+// l'icona in home si aprirebbe comunque dentro Safari invece che da sola.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
+  })
+}

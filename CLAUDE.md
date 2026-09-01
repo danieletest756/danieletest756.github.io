@@ -46,6 +46,7 @@ supabase/
   schema.sql              tabelle, trigger, funzioni, policy RLS, bucket storage
   migration_foto_misure.sql       da eseguire sui progetti creati prima delle foto
   migration_workout_log_notes.sql da eseguire sui progetti creati prima delle note sui carichi
+  migration_semi_god.sql          da eseguire sui progetti creati prima del ruolo semi-god
   seed_esercizi.sql       25 esercizi di partenza
 ```
 
@@ -65,6 +66,14 @@ il problema è quasi sempre che stai scrivendo su una tabella riservata al coach
 **`public.is_god()`** è una funzione SECURITY DEFINER: serve a evitare la ricorsione infinita di
 RLS quando una policy su `profiles` deve leggere `profiles`. Non sostituirla con una subquery
 diretta.
+
+**Tre ruoli, non due: `atleta`, `god`, `semi_god`.** Il semi-god ha gli stessi permessi di
+scrittura del god (`canEdit` è `isGod || isSemiGod` in `AuthContext`), ma le policy RLS
+(`public.is_semi_god()`) glieli concedono solo sulle righe dove `user_id = auth.uid()`: può
+modificare la propria scheda e dieta, non quella di nessun altro. Non vede la lista Atleti né
+la libreria Esercizi (route e tab restano `isGod`-only in App.jsx e Layout.jsx) — è pensato per
+un atleta a cui si vuole permettere di autogestirsi, non per un secondo coach. Si assegna con
+`update profiles set role = 'semi_god' where email = '...'`.
 
 **La chiave `service_role` non entra mai nel frontend.** È il motivo per cui il coach non può
 creare gli account degli atleti: si registrano loro e poi compaiono nella lista. Se serve
@@ -93,6 +102,13 @@ schema, non quello di `exercise-media`.
 diventa ~250 kB. Senza, il gigabyte gratuito finirebbe dopo 250 foto. Non togliere quel passaggio
 per "mantenere la qualità": è un confronto di forma fisica, non un book fotografico.
 
+**`public/img/login-bg.jpg`** è una foto stock (Unsplash, licenza gratuita, uso commerciale senza
+attribuzione — rastrelliera di manubri, fotografo Greg Rosenke) usata come sfondo della schermata
+di accesso, compressa a ~125 kB. Le altre pagine usano solo le decorazioni vettoriali di
+`components/Decor.jsx` (sfumature CSS, zero peso): niente foto lì, per non appesantire ogni
+pagina. Se in futuro serve un'altra foto reale, cercala con licenza libera (Unsplash/Pexels),
+scaricala e comprimila a una dimensione simile prima di metterla in `public/img/`.
+
 ## Convenzioni
 
 - Interfaccia e commenti in italiano. Nomi di tabelle, colonne e campi in inglese.
@@ -117,7 +133,17 @@ Hosting, dominio e login Google sono volutamente accantonati.
 **Chi riprende in mano il progetto: se il database Supabase è stato creato prima delle foto,
 esegui `supabase/migration_foto_misure.sql` nel SQL Editor, altrimenti la pagina Misure non
 trova la tabella `measurement_photos` e le foto non si caricano. Se era stato creato prima
-delle note sui carichi, esegui anche `supabase/migration_workout_log_notes.sql`.**
+delle note sui carichi, esegui anche `supabase/migration_workout_log_notes.sql`. Se era stato
+creato prima del ruolo semi-god, esegui anche `supabase/migration_semi_god.sql`.**
+
+**L'app è installabile (PWA)**: `public/manifest.webmanifest`, `public/sw.js` (service worker
+minimo, scritto a mano, nessuna dipendenza) e le icone in `public/icons/` (generate da
+`icona.svg`, manubrio bianco su blu brand — se le rifai, mantieni lo sfondo a tutta tela per le
+varianti "maskable", Android le ritaglia). Il service worker fa rete-prima-di-tutto e mette in
+cache solo i file dell'app, mai le chiamate a Supabase (dominio diverso): i dati restano sempre
+aggiornati, la cache serve solo come riserva offline. Registrato in `main.jsx`. Non installa da
+App Store/Play Store (richiederebbe un account sviluppatore a pagamento): è "Aggiungi alla
+schermata Home" da Safari/Chrome, poi si apre come un'app, senza barra del browser.
 
 **La registrazione dei carichi è per giorno, non per serie.** `ModalLog` in Allenamento.jsx
 salva un'unica riga per esercizio al giorno (cancella ed reinserisce su `user_id+item_id+date`),
@@ -132,9 +158,8 @@ tornare a registrare serie singole, cambia sia il form sia la lettura in `load()
    punto è l'atleta e a che intensità deve tirare questa settimana.
 2. **Schermata "oggi"**: quale giorno tocca, in base all'ultima seduta registrata.
 3. **Grafico dei carichi per esercizio**, per mostrare la progressione all'atleta.
-4. **PWA**: manifest e icone, così l'app si installa sulla home del telefono.
-5. **Diario alimentare**: spunta dei pasti consumati giorno per giorno.
-6. **Edge Function** per creare gli account atleta dal pannello coach.
+4. **Diario alimentare**: spunta dei pasti consumati giorno per giorno.
+5. **Edge Function** per creare gli account atleta dal pannello coach.
 
 Fatto: **la seduta in palestra** ha ora un timer di recupero (`useTimerRecupero` in
 Allenamento.jsx, parte da solo dopo il salvataggio o a tocco su "Avvia recupero"), la spunta
