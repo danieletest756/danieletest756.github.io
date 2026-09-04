@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import {
@@ -16,13 +16,44 @@ const oggi = () => new Date().toISOString().slice(0, 10)
 function useTimerRecupero() {
   const [stato, setStato] = useState(null)   // { fine, durata, nome }
   const [restante, setRestante] = useState(0)
+  const audioRef = useRef(null)
+
+  // L'AudioContext va "sbloccato" da un tocco vero (avvia() parte sempre da un
+  // click): se lo creassimo solo allo scadere del timer, il telefono lo
+  // rifiuterebbe come audio non richiesto dall'utente e non si sentirebbe nulla.
+  const audioCtx = () => {
+    if (audioRef.current) return audioRef.current
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext
+      audioRef.current = Ctx ? new Ctx() : null
+    } catch { audioRef.current = null }
+    return audioRef.current
+  }
+
+  const suona = () => {
+    const ctx = audioCtx()
+    if (!ctx) return
+    const ora = ctx.currentTime
+    ;[0, 0.32].forEach((ritardo) => {
+      const osc = ctx.createOscillator()
+      const vol = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = 880
+      vol.gain.setValueAtTime(0.0001, ora + ritardo)
+      vol.gain.exponentialRampToValueAtTime(0.35, ora + ritardo + 0.02)
+      vol.gain.exponentialRampToValueAtTime(0.0001, ora + ritardo + 0.25)
+      osc.connect(vol); vol.connect(ctx.destination)
+      osc.start(ora + ritardo)
+      osc.stop(ora + ritardo + 0.27)
+    })
+  }
 
   useEffect(() => {
     if (!stato) return
     const tick = () => {
       const r = Math.max(0, Math.round((stato.fine - Date.now()) / 1000))
       setRestante(r)
-      if (r === 0) { navigator.vibrate?.(200); setStato(null) }
+      if (r === 0) { navigator.vibrate?.(200); suona(); setStato(null) }
     }
     tick()
     const id = setInterval(tick, 250)
@@ -31,7 +62,11 @@ function useTimerRecupero() {
 
   return {
     attivo: !!stato, restante, durata: stato?.durata ?? 0, nome: stato?.nome,
-    avvia: (durata, nome) => durata > 0 && setStato({ fine: Date.now() + durata * 1000, durata, nome }),
+    avvia: (durata, nome) => {
+      if (durata <= 0) return
+      audioCtx()?.resume?.()
+      setStato({ fine: Date.now() + durata * 1000, durata, nome })
+    },
     ferma: () => setStato(null),
   }
 }
@@ -360,7 +395,7 @@ function Esercizio({ item, n, ultimo, oggi, canEdit, onLog, onEdit, onTimer }) {
           {fattoOggi ? <IconCheck width={16} height={16} /> : n}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-semibold leading-tight">{ex?.name ?? 'Esercizio'}</span>
+          <span className="block font-semibold leading-tight">{ex?.name ?? 'Esercizio'}</span>
           {ultimo && (
             <span className={`text-[12.5px] ${fattoOggi ? 'font-medium text-good' : 'text-muted'}`}>
               {fattoOggi ? 'fatto oggi' : 'ultima volta'} {ultimo.weight_kg ?? '—'} kg × {ultimo.reps ?? '—'}

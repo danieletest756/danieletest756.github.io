@@ -52,7 +52,7 @@ export default function Esercizi() {
                       ? <img src={x.image_url} alt="" className="h-11 w-11 shrink-0 rounded-lg border border-line object-cover" />
                       : <span className="h-11 w-11 shrink-0 rounded-lg bg-canvas" />}
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium leading-tight">{x.name}</p>
+                      <p className="font-medium leading-tight">{x.name}</p>
                       {x.cues && <p className="truncate text-[13px] text-muted">{x.cues}</p>}
                     </div>
                     {x.video_url && (

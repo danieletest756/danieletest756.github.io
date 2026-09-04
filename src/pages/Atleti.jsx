@@ -49,7 +49,7 @@ export default function Atleti() {
                     {iniziali(a.full_name || a.email)}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold leading-tight">{a.full_name || 'Senza nome'}</span>
+                    <span className="block font-semibold leading-tight">{a.full_name || 'Senza nome'}</span>
                     <span className="block truncate text-[13px] text-muted">{a.email}</span>
                   </span>
                   <IconChevron width={18} height={18} className="text-muted" />
