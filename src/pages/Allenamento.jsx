@@ -389,25 +389,27 @@ function Esercizio({ item, n, ultimo, oggi, canEdit, onLog, onEdit, onTimer }) {
   const fattoOggi = ultimo?.date === oggi
   return (
     <li className="card overflow-hidden">
-      <button onClick={() => setAperto(!aperto)} className="flex w-full items-center gap-3 p-4 text-left">
-        <span className={`stat grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[17px] ${
-          fattoOggi ? 'bg-good/10 text-good' : 'bg-canvas text-muted'}`}>
-          {fattoOggi ? <IconCheck width={16} height={16} /> : n}
+      <button onClick={() => setAperto(!aperto)} className="flex w-full flex-col gap-2 p-4 text-left">
+        <span className="flex items-center gap-3">
+          <span className={`stat grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[17px] ${
+            fattoOggi ? 'bg-good/10 text-good' : 'bg-canvas text-muted'}`}>
+            {fattoOggi ? <IconCheck width={16} height={16} /> : n}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold leading-tight">{ex?.name ?? 'Esercizio'}</span>
+            {ultimo && (
+              <span className={`text-[12.5px] ${fattoOggi ? 'font-medium text-good' : 'text-muted'}`}>
+                {fattoOggi ? 'fatto oggi' : 'ultima volta'} {ultimo.weight_kg ?? '—'} kg × {ultimo.reps ?? '—'}
+              </span>
+            )}
+          </span>
+          <span className={`shrink-0 text-muted transition-transform ${aperto ? 'rotate-90' : ''}`}>
+            <IconChevron width={18} height={18} />
+          </span>
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-semibold leading-tight">{ex?.name ?? 'Esercizio'}</span>
-          {ultimo && (
-            <span className={`text-[12.5px] ${fattoOggi ? 'font-medium text-good' : 'text-muted'}`}>
-              {fattoOggi ? 'fatto oggi' : 'ultima volta'} {ultimo.weight_kg ?? '—'} kg × {ultimo.reps ?? '—'}
-            </span>
-          )}
-        </span>
-        <span className="text-right">
-          <span className="stat block text-[22px]">{item.sets} serie × {item.reps} rip.</span>
+        <span className="flex items-center gap-3 pl-11">
+          <span className="stat text-[19px]">{item.sets} serie × {item.reps} rip.</span>
           {item.rir && <span className="text-[12px] text-muted">RIR {item.rir}</span>}
-        </span>
-        <span className={`text-muted transition-transform ${aperto ? 'rotate-90' : ''}`}>
-          <IconChevron width={18} height={18} />
         </span>
       </button>
 
