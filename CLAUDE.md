@@ -35,10 +35,12 @@ src/
   components/ui.jsx       icone SVG inline, Modal, Field, Section, Empty, Spinner
   components/Feedback.jsx notifiche a scomparsa e finestre di conferma
   components/FotoMisura.jsx scelta, galleria e visualizzatore a schermo intero
+  components/GraficoAndamento.jsx grafico a linea condiviso (peso, carichi) — porta con sé recharts
   pages/Login.jsx
   pages/Allenamento.jsx   giorni, esercizi, video, registrazione carichi, editor coach
   pages/Dieta.jsx         macro obiettivo, pasti, alimenti
   pages/Misure.jsx        storico, differenze, grafico peso, foto
+  pages/Progressi.jsx     grafico peso, grafico carichi per esercizio, foto prima/ora
   pages/Profilo.jsx       dati personali + note private del coach
   pages/Atleti.jsx        elenco atleti, copia scheda        (solo coach)
   pages/Esercizi.jsx      libreria con immagini e video      (solo coach)
@@ -150,6 +152,13 @@ salva un'unica riga per esercizio al giorno (cancella ed reinserisce su `user_id
 con un campo `notes` per le sensazioni. Non è più un elenco di serie separate: se serve
 tornare a registrare serie singole, cambia sia il form sia la lettura in `load()`.
 
+**Export foto (solo coach)**: da Atleti, "Scarica tutte le foto misure" (`lib/esportaFoto.js`)
+mette in un unico zip le foto di *tutti* gli atleti, una cartella per atleta e una sottocartella
+per data di misurazione. `jszip` è l'unica dipendenza "pesante" del progetto, ma si carica solo
+con un `import()` dinamico al click di quel pulsante: gli atleti non la scaricano mai. Funziona
+perché le policy RLS su `measurement_photos`/`measurements`/`profiles` concedono a `is_god()`
+la lettura su tutti gli atleti, non solo sui propri dati.
+
 ## Lavori aperti, in ordine di utilità
 
 1. **Progressione settimanale**: la scheda originale prevede 8 settimane con RIR decrescente
@@ -157,14 +166,21 @@ tornare a registrare serie singole, cambia sia il form sia la lettura in `load()
    Idea: campo `current_week` su `workout_plans` e una fascia in cima alla scheda che dice a che
    punto è l'atleta e a che intensità deve tirare questa settimana.
 2. **Schermata "oggi"**: quale giorno tocca, in base all'ultima seduta registrata.
-3. **Grafico dei carichi per esercizio**, per mostrare la progressione all'atleta.
-4. **Diario alimentare**: spunta dei pasti consumati giorno per giorno.
-5. **Edge Function** per creare gli account atleta dal pannello coach.
+3. **Diario alimentare**: spunta dei pasti consumati giorno per giorno.
+4. **Edge Function** per creare gli account atleta dal pannello coach.
 
 Fatto: **la seduta in palestra** ha ora un timer di recupero (`useTimerRecupero` in
-Allenamento.jsx, parte da solo dopo il salvataggio o a tocco su "Avvia recupero"), la spunta
-verde sugli esercizi già registrati oggi, e il carico precompilato con l'ultima volta quando
-non c'è ancora una riga per oggi.
+Allenamento.jsx, parte da solo dopo il salvataggio o a tocco su "Avvia recupero", con un doppio
+beep generato via Web Audio API allo scadere oltre alla vibrazione), la spunta verde sugli
+esercizi già registrati oggi, e il carico precompilato con l'ultima volta quando non c'è ancora
+una riga per oggi.
+
+Fatto: **sezione Progressi** — grafico del peso, grafico del carico nel tempo per esercizio
+(select per sceglierlo, raggruppato per nome via `workout_items.exercise_id`: funziona anche
+tra schede diverse, non solo dentro quella attiva) e foto prima/ora a confronto. Usa ancora la
+sfumatura vettoriale (`accent`) come Atleti/Esercizi: manca la foto di sfondo in
+`src/assets/bg/progressi.jpg` — quando arriva, sostituire il `<Section accent>` con
+`<IntestazioneFoto>` come nelle altre pagine.
 
 Difetti noti, piccoli ma reali:
 

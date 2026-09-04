@@ -43,6 +43,9 @@ export const IconCamera = (p) => (
     <circle cx="12" cy="13" r="3.2" />
   </svg>
 )
+export const IconChart = (p) => (
+  <svg {...I(p)}><path d="M4 20V10M11 20V4M18 20v-7" /><path d="M3 20h18" /></svg>
+)
 
 /* ---------- Blocchi ---------- */
 /** `accent`: vero (o "brand"/"saffron") disegna una sfumatura dietro al titolo.

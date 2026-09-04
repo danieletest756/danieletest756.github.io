@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState, useMemo } from 'react'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { Section, Modal, Field, Empty, Spinner, IconPlus, IconTrash, IconRuler } from '../components/ui'
@@ -7,6 +6,7 @@ import { useToast, useConfirm } from '../components/Feedback'
 import { SceltaFoto, Galleria } from '../components/FotoMisura'
 import { caricaFoto, urlFirmati } from '../lib/foto'
 import IntestazioneFoto from '../components/IntestazioneFoto'
+import GraficoAndamento from '../components/GraficoAndamento'
 import fotoMisure from '../assets/bg/misure.jpg'
 
 const CAMPI = [
@@ -171,17 +171,7 @@ export default function Misure() {
             {serie.length > 1 && (
               <div className="card mb-4 p-5 pl-1">
                 <p className="mb-3 pl-4 text-[13px] text-muted">Andamento del peso</p>
-                <div className="h-44">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={serie} margin={{ top: 5, right: 16, bottom: 0, left: 0 }}>
-                      <XAxis dataKey="data" tick={{ fontSize: 12, fill: '#5D6C85' }} axisLine={false} tickLine={false} />
-                      <YAxis domain={['dataMin - 1', 'dataMax + 1']} width={38}
-                             tick={{ fontSize: 12, fill: '#5D6C85' }} axisLine={false} tickLine={false} />
-                      <Tooltip formatter={(v) => [`${v} kg`, 'Peso']} />
-                      <Line type="monotone" dataKey="peso" stroke="#1F4FD8" strokeWidth={2.5} dot={{ r: 3 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+                <GraficoAndamento dati={serie} chiave="peso" unita="kg" etichetta="Peso" />
               </div>
             )}
 

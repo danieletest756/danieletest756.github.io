@@ -1,13 +1,14 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
-import { IconDumbbell, IconPlate, IconRuler, IconUser, IconTeam } from './ui'
+import { IconDumbbell, IconPlate, IconRuler, IconChart, IconUser, IconTeam } from './ui'
 import { Sfumatura } from './Decor'
 
 const tabs = [
-  { to: '/allenamento', label: 'Scheda',  Icon: IconDumbbell },
-  { to: '/dieta',       label: 'Dieta',   Icon: IconPlate },
-  { to: '/misure',      label: 'Misure',  Icon: IconRuler },
-  { to: '/profilo',     label: 'Profilo', Icon: IconUser },
+  { to: '/allenamento', label: 'Scheda',    Icon: IconDumbbell },
+  { to: '/dieta',       label: 'Dieta',     Icon: IconPlate },
+  { to: '/misure',      label: 'Misure',    Icon: IconRuler },
+  { to: '/progressi',   label: 'Progressi', Icon: IconChart },
+  { to: '/profilo',     label: 'Profilo',   Icon: IconUser },
 ]
 
 /*

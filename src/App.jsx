@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import Profilo from './pages/Profilo'
 const Misure = lazy(() => import('./pages/Misure'))
+const Progressi = lazy(() => import('./pages/Progressi'))
 import Allenamento from './pages/Allenamento'
 import Dieta from './pages/Dieta'
 const Atleti = lazy(() => import('./pages/Atleti'))
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/allenamento" element={<Allenamento />} />
         <Route path="/dieta" element={<Dieta />} />
         <Route path="/misure" element={<Misure />} />
+        <Route path="/progressi" element={<Progressi />} />
         <Route path="/profilo" element={<Profilo />} />
         {isGod && <Route path="/atleti" element={<Atleti />} />}
         {isGod && <Route path="/esercizi" element={<Esercizi />} />}

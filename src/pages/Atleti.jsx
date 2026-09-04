@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
-import { Section, Empty, Modal, Spinner, IconChevron, IconTeam } from '../components/ui'
+import { Section, Empty, Modal, Spinner, IconChevron, IconTeam, IconCamera } from '../components/ui'
 import { useToast } from '../components/Feedback'
+import { esportaTutteLeFoto } from '../lib/esportaFoto'
 
 export default function Atleti() {
   const { setViewing, profile } = useAuth()
@@ -11,6 +12,8 @@ export default function Atleti() {
   const [rows, setRows] = useState(null)
   const [q, setQ] = useState('')
   const [copia, setCopia] = useState(false)
+  const [esportando, setEsportando] = useState(null)   // null | { fatte, totali }
+  const toast = useToast()
 
   async function load() {
     const { data } = await supabase.from('profiles').select('*').order('full_name')
@@ -25,6 +28,26 @@ export default function Atleti() {
     (a.full_name || a.email || '').toLowerCase().includes(q.toLowerCase()))
 
   function apri(a) { setViewing(a); navigate('/allenamento') }
+
+  async function scaricaFoto() {
+    setEsportando({ fatte: 0, totali: 0 })
+    try {
+      const zip = await esportaTutteLeFoto((fatte, totali) => setEsportando({ fatte, totali }))
+      if (!zip) { toast.info('Non ci sono ancora foto da scaricare.'); return }
+
+      const url = URL.createObjectURL(zip)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `foto-misure-${new Date().toISOString().slice(0, 10)}.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.ok('Zip scaricato')
+    } catch (err) {
+      toast.err(err)
+    } finally {
+      setEsportando(null)
+    }
+  }
 
   return (
     <>
@@ -59,12 +82,31 @@ export default function Atleti() {
           </ul>
         )}
 
-        <button onClick={() => setCopia(true)} className="btn-ghost mt-4 w-full">
-          Copia una scheda su un altro atleta
-        </button>
+        <div className="mt-4 flex flex-col gap-2">
+          <button onClick={() => setCopia(true)} className="btn-ghost w-full">
+            Copia una scheda su un altro atleta
+          </button>
+          <button onClick={scaricaFoto} disabled={!!esportando} className="btn-ghost w-full">
+            <IconCamera width={16} height={16} /> Scarica tutte le foto misure (zip)
+          </button>
+        </div>
       </Section>
 
       <ModalCopia open={copia} onClose={() => setCopia(false)} atleti={atleti} />
+
+      <Modal open={!!esportando} onClose={() => {}} title="Scarico le foto">
+        <div className="flex flex-col items-center gap-3 py-4">
+          <span className="h-8 w-8 animate-spin rounded-full border-4 border-line border-t-brand" />
+          <p className="text-sm text-muted">
+            {esportando?.totali
+              ? `Foto ${esportando.fatte} di ${esportando.totali}…`
+              : 'Preparo l\'elenco delle foto…'}
+          </p>
+          <p className="text-center text-xs text-muted">
+            Può volerci un po' se sono tante: non chiudere la pagina.
+          </p>
+        </div>
+      </Modal>
     </>
   )
 }

@@ -108,6 +108,7 @@ src/
   pages/Allenamento    giorni, esercizi, video, registrazione carichi
   pages/Dieta          macro obiettivo, pasti, alimenti
   pages/Misure         storico misure, differenze, grafico peso, foto dei progressi
+  pages/Progressi      grafico peso, grafico carichi per esercizio, foto prima/ora
   pages/Profilo        dati personali (+ note private del coach)
   pages/Atleti         elenco atleti, copia scheda      → solo coach
   pages/Esercizi       libreria con immagini e video    → solo coach
@@ -149,6 +150,4 @@ di archiviazione: se ne occupa un trigger sul database.
 
 - Schermata "oggi" con il giorno di allenamento suggerito in base al calendario.
 - Diario alimentare giornaliero con spunta dei pasti consumati.
-- Grafico dei carichi per esercizio, per far vedere la progressione all'atleta.
-- Installazione come app sul telefono (PWA con manifest e service worker).
 - Notifica al coach quando un atleta registra una seduta.
