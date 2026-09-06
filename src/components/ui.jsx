@@ -46,6 +46,9 @@ export const IconCamera = (p) => (
 export const IconChart = (p) => (
   <svg {...I(p)}><path d="M4 20V10M11 20V4M18 20v-7" /><path d="M3 20h18" /></svg>
 )
+export const IconDownload = (p) => (
+  <svg {...I(p)}><path d="M12 3v12M7 10l5 5 5-5" /><path d="M4 19h16" /></svg>
+)
 
 /* ---------- Blocchi ---------- */
 /** `accent`: vero (o "brand"/"saffron") disegna una sfumatura dietro al titolo.
@@ -120,11 +123,14 @@ export function Modal({ open, onClose, title, children, z = 'z-50' }) {
   return (
     <div className={`fixed inset-0 ${z} flex items-end justify-center bg-ink/40 sm:items-center`} onClick={onClose}>
       <div
-        className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-surface p-5 pb-8 sm:max-w-lg sm:rounded-3xl sm:pb-5"
+        className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-surface p-5 pb-8 sm:max-w-lg sm:rounded-3xl sm:pb-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line sm:hidden" />
-        {title && <h3 className="mb-4 font-cond text-[24px] font-semibold leading-none">{title}</h3>}
+        <button onClick={onClose} className="absolute right-4 top-4 rounded-lg p-1.5 text-muted hover:bg-canvas" aria-label="Chiudi">
+          <IconClose width={18} height={18} />
+        </button>
+        {title && <h3 className="mb-4 pr-9 font-cond text-[24px] font-semibold leading-none">{title}</h3>}
         {children}
       </div>
     </div>

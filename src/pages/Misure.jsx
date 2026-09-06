@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
-import { Section, Modal, Field, Empty, Spinner, IconPlus, IconTrash, IconRuler } from '../components/ui'
+import { Section, Modal, Field, Empty, Spinner, IconPlus, IconTrash, IconRuler, IconDownload } from '../components/ui'
 import { useToast, useConfirm } from '../components/Feedback'
 import { SceltaFoto, Galleria } from '../components/FotoMisura'
 import { caricaFoto, urlFirmati } from '../lib/foto'
+import { esportaFotoMisurazione } from '../lib/esportaFoto'
 import IntestazioneFoto from '../components/IntestazioneFoto'
 import GraficoAndamento from '../components/GraficoAndamento'
 import fotoMisure from '../assets/bg/misure.jpg'
@@ -31,6 +32,7 @@ export default function Misure() {
   const [fotoNuove, setFotoNuove] = useState([])
   const [busy, setBusy] = useState(false)
   const [fase, setFase] = useState('')       // cosa sto facendo, mentre salvo
+  const [scaricando, setScaricando] = useState(null)   // id della misurazione di cui sto zippando le foto
   const toast = useToast()
   const chiedi = useConfirm()
 
@@ -108,6 +110,25 @@ export default function Misure() {
     load()
   }
 
+  async function scaricaFotoMisurazione(r) {
+    setScaricando(r.id)
+    try {
+      const zip = await esportaFotoMisurazione(foto[r.id] ?? [], urls)
+      if (!zip) { toast.info('Nessuna foto da scaricare per questa misurazione.'); return }
+      const url = URL.createObjectURL(zip)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `foto-misura-${r.date}.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.ok('Zip scaricato')
+    } catch (err) {
+      toast.err(err)
+    } finally {
+      setScaricando(null)
+    }
+  }
+
   async function elimina(r) {
     const n = (foto[r.id] ?? []).length
     const ok = await chiedi({
@@ -182,9 +203,23 @@ export default function Misure() {
                     <p className="font-cond text-[19px] font-semibold">
                       {new Date(r.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
-                    <button onClick={() => elimina(r)} className="p-1 text-muted hover:text-bad" aria-label="Elimina">
-                      <IconTrash width={18} height={18} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {(foto[r.id]?.length ?? 0) > 0 && (
+                        <button
+                          onClick={() => scaricaFotoMisurazione(r)}
+                          disabled={scaricando === r.id}
+                          className="p-1 text-muted hover:text-brand disabled:opacity-50"
+                          aria-label="Scarica le foto di questa misurazione"
+                        >
+                          {scaricando === r.id
+                            ? <span className="block h-[18px] w-[18px] animate-spin rounded-full border-2 border-line border-t-brand" />
+                            : <IconDownload width={18} height={18} />}
+                        </button>
+                      )}
+                      <button onClick={() => elimina(r)} className="p-1 text-muted hover:text-bad" aria-label="Elimina">
+                        <IconTrash width={18} height={18} />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-x-5 gap-y-1.5">
                     {CAMPI.filter(({ k }) => r[k] != null).map(({ k, l, u }) => (

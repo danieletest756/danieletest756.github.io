@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import {
   Section, Empty, Modal, Field, Spinner,
-  IconPlus, IconEdit, IconTrash, IconPlate,
+  IconPlus, IconEdit, IconTrash, IconPlate, IconInfo,
 } from '../components/ui'
 import { useToast, useConfirm } from '../components/Feedback'
 import IntestazioneFoto, { SfondoFoto } from '../components/IntestazioneFoto'
@@ -20,6 +20,7 @@ export default function Dieta() {
   const [editDay, setEditDay] = useState(null)
   const [editFood, setEditFood] = useState(null)
   const [editMeal, setEditMeal] = useState(null)
+  const [infoAperto, setInfoAperto] = useState(false)
 
   const load = useCallback(async () => {
     if (!targetId) return
@@ -111,9 +112,10 @@ export default function Dieta() {
         </div>
 
         {plan.notes && (
-          <p className="mb-5 whitespace-pre-line rounded-xl bg-brandsoft px-4 py-3.5 text-sm leading-relaxed text-ink/80">
-            {plan.notes}
-          </p>
+          <button onClick={() => setInfoAperto(true)}
+                  className="mb-5 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[13px] font-medium text-brand shadow-sm">
+            <IconInfo width={15} height={15} /> Come leggere il piano
+          </button>
         )}
 
         {/* selettore giorni */}
@@ -230,6 +232,9 @@ export default function Dieta() {
       />
       <ModalAlimento food={editFood} onClose={() => setEditFood(null)} onDone={load} />
       <ModalPasto meal={editMeal} onClose={() => setEditMeal(null)} onDone={load} />
+      <Modal open={infoAperto} onClose={() => setInfoAperto(false)} title="Come leggere il piano">
+        <p className="whitespace-pre-line text-sm leading-relaxed text-muted">{plan.notes}</p>
+      </Modal>
     </>
   )
 }

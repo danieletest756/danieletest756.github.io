@@ -172,12 +172,15 @@ salva un'unica riga per esercizio al giorno (cancella ed reinserisce su `user_id
 con un campo `notes` per le sensazioni. Non è più un elenco di serie separate: se serve
 tornare a registrare serie singole, cambia sia il form sia la lettura in `load()`.
 
-**Export foto (solo coach)**: da Atleti, "Scarica tutte le foto misure" (`lib/esportaFoto.js`)
-mette in un unico zip le foto di *tutti* gli atleti, una cartella per atleta e una sottocartella
-per data di misurazione. `jszip` è l'unica dipendenza "pesante" del progetto, ma si carica solo
-con un `import()` dinamico al click di quel pulsante: gli atleti non la scaricano mai. Funziona
-perché le policy RLS su `measurement_photos`/`measurements`/`profiles` concedono a `is_god()`
-la lettura su tutti gli atleti, non solo sui propri dati.
+**Export foto** (`lib/esportaFoto.js`, due funzioni): `esportaTutteLeFoto()` — da Atleti, solo
+coach — mette in un unico zip le foto di *tutti* gli atleti, una cartella per atleta e una
+sottocartella per data di misurazione; interroga il database da sola e funziona perché le policy
+RLS su `measurement_photos`/`measurements`/`profiles` concedono a `is_god()` la lettura su tutti
+gli atleti. `esportaFotoMisurazione(foto, urls)` — da Misure, chiunque veda quella misurazione
+(atleta compreso) — zippa solo le foto di UNA misurazione; non fa query, riusa le foto e i link
+firmati già caricati dalla pagina. `jszip` è l'unica dipendenza "pesante" del progetto, ma in
+entrambi i casi si carica solo con un `import()` dinamico al click del pulsante: chi non lo usa
+non lo scarica mai.
 
 ## Lavori aperti, in ordine di utilità
 
