@@ -38,7 +38,7 @@ src/
   components/GraficoAndamento.jsx grafico a linea condiviso (peso, carichi) — porta con sé recharts
   pages/Login.jsx
   pages/Allenamento.jsx   giorni, esercizi, video, registrazione carichi, editor coach
-  pages/Dieta.jsx         macro obiettivo, pasti, alimenti
+  pages/Dieta.jsx         macro obiettivo, giorni, pasti, alimenti
   pages/Misure.jsx        storico, differenze, grafico peso, foto
   pages/Progressi.jsx     grafico peso, grafico carichi per esercizio, foto prima/ora
   pages/Profilo.jsx       dati personali + note private del coach
@@ -49,7 +49,12 @@ supabase/
   migration_foto_misure.sql       da eseguire sui progetti creati prima delle foto
   migration_workout_log_notes.sql da eseguire sui progetti creati prima delle note sui carichi
   migration_semi_god.sql          da eseguire sui progetti creati prima del ruolo semi-god
+  migration_diet_days.sql         da eseguire sui progetti creati prima dei giorni nella dieta
   seed_esercizi.sql       25 esercizi di partenza
+templates/
+  scheda_allenamento_template.sql  da far compilare a un'IA insieme al PDF di un atleta
+  scheda_dieta_template.sql        idem, per il piano alimentare
+  README.md                        come si usano (non sono script da eseguire direttamente)
 ```
 
 ## Concetti da conoscere prima di toccare il codice
@@ -80,6 +85,15 @@ un atleta a cui si vuole permettere di autogestirsi, non per un secondo coach. S
 **La chiave `service_role` non entra mai nel frontend.** È il motivo per cui il coach non può
 creare gli account degli atleti: si registrano loro e poi compaiono nella lista. Se serve
 cambiare questo comportamento, la strada è una Supabase Edge Function.
+
+**La Dieta ha "giorni" come la Scheda.** `diet_plans → diet_days → diet_meals → diet_foods`,
+stessa gerarchia a quattro livelli di `workout_plans → workout_days → workout_items`. Un piano
+nuovo creato dall'app parte con un solo giorno ("Giorno tipo"): il coach ne aggiunge altri se il
+piano ruota (es. una settimana intera con menù diversi giorno per giorno, come i piani dei
+nutrizionisti). I macro obiettivo (kcal/proteine/carbo/grassi) restano sul piano, non sul
+giorno: sono lo stesso obiettivo ogni giorno, cambia solo cosa lo raggiunge. La somma "consumato
+oggi" mostrata nell'app è calcolata sugli alimenti del giorno selezionato, non su tutti i giorni
+del piano.
 
 **Niente `alert`, `confirm` o `prompt`.** Bloccano la pagina e, con l'app installata sulla home
 di iOS, il browser li ignora del tutto: il pulsante sembra rotto. Al loro posto `Feedback.jsx`:
@@ -143,9 +157,15 @@ minimo, scritto a mano, nessuna dipendenza) e le icone in `public/icons/` (gener
 `icona.svg`, manubrio bianco su blu brand — se le rifai, mantieni lo sfondo a tutta tela per le
 varianti "maskable", Android le ritaglia). Il service worker fa rete-prima-di-tutto e mette in
 cache solo i file dell'app, mai le chiamate a Supabase (dominio diverso): i dati restano sempre
-aggiornati, la cache serve solo come riserva offline. Registrato in `main.jsx`. Non installa da
-App Store/Play Store (richiederebbe un account sviluppatore a pagamento): è "Aggiungi alla
-schermata Home" da Safari/Chrome, poi si apre come un'app, senza barra del browser.
+aggiornati, la cache serve solo come riserva offline. Registrato in `main.jsx` **solo quando
+`import.meta.env.PROD`**: in sviluppo un service worker mette in cache i moduli di Vite e fa
+vedere pagine vecchie invece delle modifiche appena fatte (è già successo: un piano dieta
+inserito via SQL non si vedeva perché il browser aveva ancora la build precedente in cache). Se
+in `npm run dev` sembra che l'app non rifletta un cambiamento appena fatto, prima di sospettare
+altro controlla DevTools → Application → Service Workers e disiscrivi quelli registrati in
+sessioni precedenti a questa guardia. Non installa da App Store/Play Store (richiederebbe un
+account sviluppatore a pagamento): è "Aggiungi alla schermata Home" da Safari/Chrome, poi si
+apre come un'app, senza barra del browser.
 
 **La registrazione dei carichi è per giorno, non per serie.** `ModalLog` in Allenamento.jsx
 salva un'unica riga per esercizio al giorno (cancella ed reinserisce su `user_id+item_id+date`),

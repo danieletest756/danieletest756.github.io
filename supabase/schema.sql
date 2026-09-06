@@ -151,9 +151,20 @@ create table if not exists public.diet_plans (
   created_at timestamptz not null default now()
 );
 
-create table if not exists public.diet_meals (
+-- Giorno della settimana (o "Giorno tipo" per un piano che non ruota): stesso
+-- ruolo di workout_days per la scheda. Un piano può avere un solo giorno
+-- (dieta fissa) o più giorni diversi (dieta che ruota, es. una settimana intera).
+create table if not exists public.diet_days (
   id       uuid primary key default gen_random_uuid(),
   plan_id  uuid not null references public.diet_plans(id) on delete cascade,
+  position int not null default 1,
+  title    text not null,        -- "Lunedì", "Giorno tipo"...
+  notes    text
+);
+
+create table if not exists public.diet_meals (
+  id       uuid primary key default gen_random_uuid(),
+  day_id   uuid not null references public.diet_days(id) on delete cascade,
   position int not null default 1,
   name     text not null,       -- Colazione, Spuntino, Pranzo...
   time_label text,              -- "07:30", "pre-workout"
@@ -185,6 +196,7 @@ alter table public.workout_days  enable row level security;
 alter table public.workout_items enable row level security;
 alter table public.workout_logs  enable row level security;
 alter table public.diet_plans    enable row level security;
+alter table public.diet_days     enable row level security;
 alter table public.diet_meals    enable row level security;
 alter table public.diet_foods    enable row level security;
 
@@ -270,30 +282,50 @@ create policy dp_write on public.diet_plans for all
   using (public.is_god() or (public.is_semi_god() and user_id = auth.uid()))
   with check (public.is_god() or (public.is_semi_god() and user_id = auth.uid()));
 
-drop policy if exists dm_select on public.diet_meals;
-create policy dm_select on public.diet_meals for select using (
+drop policy if exists dd_select on public.diet_days;
+create policy dd_select on public.diet_days for select using (
   public.is_god() or exists (
     select 1 from public.diet_plans p where p.id = plan_id and p.user_id = auth.uid()));
-drop policy if exists dm_write on public.diet_meals;
-create policy dm_write on public.diet_meals for all
+drop policy if exists dd_write on public.diet_days;
+create policy dd_write on public.diet_days for all
   using (public.is_god() or (public.is_semi_god() and exists (
     select 1 from public.diet_plans p where p.id = plan_id and p.user_id = auth.uid())))
   with check (public.is_god() or (public.is_semi_god() and exists (
     select 1 from public.diet_plans p where p.id = plan_id and p.user_id = auth.uid())));
 
+drop policy if exists dm_select on public.diet_meals;
+create policy dm_select on public.diet_meals for select using (
+  public.is_god() or exists (
+    select 1 from public.diet_days d
+    join public.diet_plans p on p.id = d.plan_id
+    where d.id = day_id and p.user_id = auth.uid()));
+drop policy if exists dm_write on public.diet_meals;
+create policy dm_write on public.diet_meals for all
+  using (public.is_god() or (public.is_semi_god() and exists (
+    select 1 from public.diet_days d join public.diet_plans p on p.id = d.plan_id
+    where d.id = day_id and p.user_id = auth.uid())))
+  with check (public.is_god() or (public.is_semi_god() and exists (
+    select 1 from public.diet_days d join public.diet_plans p on p.id = d.plan_id
+    where d.id = day_id and p.user_id = auth.uid())));
+
 drop policy if exists df_select on public.diet_foods;
 create policy df_select on public.diet_foods for select using (
   public.is_god() or exists (
     select 1 from public.diet_meals m
-    join public.diet_plans p on p.id = m.plan_id
+    join public.diet_days d on d.id = m.day_id
+    join public.diet_plans p on p.id = d.plan_id
     where m.id = meal_id and p.user_id = auth.uid()));
 drop policy if exists df_write on public.diet_foods;
 create policy df_write on public.diet_foods for all
   using (public.is_god() or (public.is_semi_god() and exists (
-    select 1 from public.diet_meals m join public.diet_plans p on p.id = m.plan_id
+    select 1 from public.diet_meals m
+    join public.diet_days d on d.id = m.day_id
+    join public.diet_plans p on p.id = d.plan_id
     where m.id = meal_id and p.user_id = auth.uid())))
   with check (public.is_god() or (public.is_semi_god() and exists (
-    select 1 from public.diet_meals m join public.diet_plans p on p.id = m.plan_id
+    select 1 from public.diet_meals m
+    join public.diet_days d on d.id = m.day_id
+    join public.diet_plans p on p.id = d.plan_id
     where m.id = meal_id and p.user_id = auth.uid())));
 
 -- ============================================================

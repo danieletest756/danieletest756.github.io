@@ -1,7 +1,10 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
-import { Section, Empty, Modal, Field, Spinner, IconPlus, IconEdit, IconTrash, IconPlate } from '../components/ui'
+import {
+  Section, Empty, Modal, Field, Spinner,
+  IconPlus, IconEdit, IconTrash, IconPlate,
+} from '../components/ui'
 import { useToast, useConfirm } from '../components/Feedback'
 import IntestazioneFoto, { SfondoFoto } from '../components/IntestazioneFoto'
 import fotoDieta from '../assets/bg/dieta.jpg'
@@ -9,9 +12,12 @@ import fotoDieta from '../assets/bg/dieta.jpg'
 export default function Dieta() {
   const { targetId, canEdit } = useAuth()
   const [plan, setPlan] = useState(undefined)
-  const [meals, setMeals] = useState([])
-  const [foods, setFoods] = useState({})
+  const [days, setDays] = useState([])
+  const [meals, setMeals] = useState({})       // { day_id: [pasto, ...] }
+  const [foods, setFoods] = useState({})       // { meal_id: [alimento, ...] }
+  const [tab, setTab] = useState(0)
   const [editPlan, setEditPlan] = useState(null)
+  const [editDay, setEditDay] = useState(null)
   const [editFood, setEditFood] = useState(null)
   const [editMeal, setEditMeal] = useState(null)
 
@@ -21,28 +27,40 @@ export default function Dieta() {
       .eq('user_id', targetId).eq('is_active', true)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     setPlan(p ?? null)
-    if (!p) { setMeals([]); setFoods({}); return }
+    if (!p) { setDays([]); setMeals({}); setFoods({}); return }
 
-    const { data: m } = await supabase.from('diet_meals').select('*').eq('plan_id', p.id).order('position')
-    setMeals(m ?? [])
-    const ids = (m ?? []).map((x) => x.id)
-    if (!ids.length) return setFoods({})
-    const { data: f } = await supabase.from('diet_foods').select('*').in('meal_id', ids).order('position')
+    const { data: d } = await supabase.from('diet_days').select('*').eq('plan_id', p.id).order('position')
+    setDays(d ?? [])
+
+    const dayIds = (d ?? []).map((x) => x.id)
+    if (!dayIds.length) { setMeals({}); setFoods({}); return }
+
+    const { data: m } = await supabase.from('diet_meals').select('*').in('day_id', dayIds).order('position')
+    const gruppi = {}
+    ;(m ?? []).forEach((r) => { (gruppi[r.day_id] ||= []).push(r) })
+    setMeals(gruppi)
+
+    const mealIds = (m ?? []).map((x) => x.id)
+    if (!mealIds.length) { setFoods({}); return }
+    const { data: f } = await supabase.from('diet_foods').select('*').in('meal_id', mealIds).order('position')
     const g = {}
     ;(f ?? []).forEach((r) => { (g[r.meal_id] ||= []).push(r) })
     setFoods(g)
   }, [targetId])
 
-  useEffect(() => { setPlan(undefined); load() }, [load])
+  useEffect(() => { setPlan(undefined); setTab(0); load() }, [load])
+
+  const giorno = days[tab]
+  const pastiGiorno = giorno ? meals[giorno.id] ?? [] : []
 
   const totali = useMemo(() => {
     const t = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
-    Object.values(foods).flat().forEach((f) => {
+    pastiGiorno.flatMap((m) => foods[m.id] ?? []).forEach((f) => {
       t.kcal += Number(f.kcal || 0); t.protein_g += Number(f.protein_g || 0)
       t.carbs_g += Number(f.carbs_g || 0); t.fat_g += Number(f.fat_g || 0)
     })
     return t
-  }, [foods])
+  }, [pastiGiorno, foods])
 
   if (!targetId || plan === undefined) return <Spinner />
 
@@ -88,7 +106,7 @@ export default function Dieta() {
             <Macro nome="Grassi"      target={plan.fat_g}     ora={totali.fat_g}     colore="#1B7F5A" />
           </div>
           <p className="mt-4 text-[13px] text-muted">
-            I valori a destra sono la somma degli alimenti inseriti nei pasti qui sotto.
+            I valori a destra sono la somma degli alimenti inseriti nei pasti del giorno selezionato.
           </p>
         </div>
 
@@ -98,11 +116,48 @@ export default function Dieta() {
           </p>
         )}
 
-        {meals.length === 0 ? (
-          <Empty title="Nessun pasto inserito" hint={canEdit ? 'Aggiungi il primo pasto.' : ''} />
+        {/* selettore giorni */}
+        <div className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1">
+          {days.map((d, i) => (
+            <button
+              key={d.id}
+              onClick={() => setTab(i)}
+              className={`shrink-0 rounded-xl px-4 py-2.5 text-left transition-colors ${
+                i === tab ? 'bg-ink text-white' : 'border border-line bg-white text-ink'
+              }`}
+            >
+              <span className="block font-cond text-[19px] font-semibold leading-none">{d.title}</span>
+            </button>
+          ))}
+          {canEdit && (
+            <button
+              onClick={() => setEditDay({ plan_id: plan.id, position: days.length + 1 })}
+              className="shrink-0 rounded-xl border border-dashed border-line bg-white px-4 text-muted"
+              aria-label="Aggiungi giorno"
+            >
+              <IconPlus />
+            </button>
+          )}
+        </div>
+
+        {giorno?.notes && (
+          <p className="mb-4 whitespace-pre-line rounded-xl bg-brandsoft px-4 py-3 text-sm leading-relaxed text-ink/80">
+            {giorno.notes}
+          </p>
+        )}
+
+        {canEdit && giorno && (
+          <button onClick={() => setEditDay(giorno)}
+                  className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[13px] font-medium text-muted shadow-sm">
+            <IconEdit width={15} height={15} /> Modifica il giorno «{giorno.title}»
+          </button>
+        )}
+
+        {pastiGiorno.length === 0 ? (
+          <Empty title="Giorno vuoto" hint={canEdit ? 'Aggiungi i pasti qui sotto.' : 'Nessun pasto previsto.'} />
         ) : (
           <div className="space-y-4">
-            {meals.map((m) => {
+            {pastiGiorno.map((m) => {
               const lista = foods[m.id] ?? []
               const k = lista.reduce((s, f) => s + Number(f.kcal || 0), 0)
               return (
@@ -157,9 +212,9 @@ export default function Dieta() {
           </div>
         )}
 
-        {canEdit && (
+        {canEdit && giorno && (
           <button
-            onClick={() => setEditMeal({ plan_id: plan.id, position: meals.length + 1 })}
+            onClick={() => setEditMeal({ day_id: giorno.id, position: pastiGiorno.length + 1 })}
             className="btn-ghost mt-4 w-full border-dashed"
           >
             <IconPlus width={18} height={18} /> Aggiungi pasto
@@ -168,9 +223,84 @@ export default function Dieta() {
       </Section>
 
       <ModalPiano plan={editPlan} userId={targetId} onClose={() => setEditPlan(null)} onDone={load} />
+      <ModalGiorno
+        day={editDay}
+        onClose={() => setEditDay(null)}
+        onDone={(eliminato) => { if (eliminato) setTab(0); load() }}
+      />
       <ModalAlimento food={editFood} onClose={() => setEditFood(null)} onDone={load} />
       <ModalPasto meal={editMeal} onClose={() => setEditMeal(null)} onDone={load} />
     </>
+  )
+}
+
+/* ---------------- giorno della dieta (solo coach) ---------------- */
+function ModalGiorno({ day, onClose, onDone }) {
+  const [f, setF] = useState({ title: '', notes: '' })
+  const [busy, setBusy] = useState(false)
+  const toast = useToast()
+  const chiedi = useConfirm()
+
+  useEffect(() => {
+    if (day) setF({ title: day.title ?? '', notes: day.notes ?? '' })
+  }, [day])
+
+  if (!day) return null
+  const nuovo = !day.id
+
+  async function salva(e) {
+    e.preventDefault()
+    setBusy(true)
+    const p = { title: f.title.trim(), notes: f.notes.trim() || null }
+    const { error } = nuovo
+      ? await supabase.from('diet_days').insert({ ...p, plan_id: day.plan_id, position: day.position })
+      : await supabase.from('diet_days').update(p).eq('id', day.id)
+    setBusy(false)
+    if (error) return toast.err(error)
+    toast.ok(nuovo ? 'Giorno aggiunto' : 'Giorno aggiornato')
+    onClose(); onDone(false)
+  }
+
+  async function elimina() {
+    const ok = await chiedi({
+      title: `Elimino «${day.title}»?`,
+      body: 'Spariscono anche i pasti e gli alimenti di questo giorno. Non si torna indietro.',
+      conferma: 'Elimina il giorno',
+      danger: true,
+    })
+    if (!ok) return
+    setBusy(true)
+    const { error } = await supabase.from('diet_days').delete().eq('id', day.id)
+    setBusy(false)
+    if (error) return toast.err(error)
+    toast.ok('Giorno eliminato')
+    onClose(); onDone(true)
+  }
+
+  return (
+    <Modal open onClose={onClose} title={nuovo ? 'Nuovo giorno' : 'Modifica giorno'}>
+      <form onSubmit={salva} className="space-y-4">
+        <Field
+          label="Titolo del giorno" value={f.title} required autoFocus
+          onChange={(e) => setF({ ...f, title: e.target.value })}
+          placeholder="Lunedì, oppure Giorno tipo"
+        />
+        <label className="block">
+          <span className="label">Nota in cima al giorno</span>
+          <textarea className="field min-h-[80px]" value={f.notes}
+                    onChange={(e) => setF({ ...f, notes: e.target.value })}
+                    placeholder="Note utili per questo giorno." />
+        </label>
+        <div className="flex gap-3 pt-1">
+          <button className="btn-primary flex-1" disabled={busy}>{busy ? 'Salvo…' : 'Salva'}</button>
+          {!nuovo && (
+            <button type="button" onClick={elimina} disabled={busy} className="btn-danger" aria-label="Elimina giorno">
+              <IconTrash width={18} height={18} />
+            </button>
+          )}
+        </div>
+      </form>
+    </Modal>
   )
 }
 
@@ -193,7 +323,7 @@ function ModalPasto({ meal, onClose, onDone }) {
     setBusy(true)
     const p = { name: f.name.trim(), time_label: f.time_label.trim() || null, notes: f.notes.trim() || null }
     const { error } = nuovo
-      ? await supabase.from('diet_meals').insert({ ...p, plan_id: meal.plan_id, position: meal.position })
+      ? await supabase.from('diet_meals').insert({ ...p, day_id: meal.day_id, position: meal.position })
       : await supabase.from('diet_meals').update(p).eq('id', meal.id)
     setBusy(false)
     if (error) return toast.err(error)
@@ -281,9 +411,13 @@ function ModalPiano({ plan, userId, onClose, onDone }) {
       title: f.title, kcal: num(f.kcal), protein_g: num(f.protein_g), carbs_g: num(f.carbs_g),
       fat_g: num(f.fat_g), water_l: num(f.water_l), notes: f.notes || null,
     }
-    const { error } = nuovo
-      ? await supabase.from('diet_plans').insert({ ...p, user_id: userId, is_active: true })
-      : await supabase.from('diet_plans').update(p).eq('id', plan.id)
+    const { error, data } = nuovo
+      ? await supabase.from('diet_plans').insert({ ...p, user_id: userId, is_active: true }).select().single()
+      : await supabase.from('diet_plans').update(p).eq('id', plan.id).select().single()
+    if (!error && nuovo && data) {
+      // Un piano nuovo nasce con un giorno solo: il coach aggiunge gli altri se il piano ruota
+      await supabase.from('diet_days').insert({ plan_id: data.id, position: 1, title: 'Giorno tipo' })
+    }
     setBusy(false)
     if (error) return toast.err(error)
     toast.ok(nuovo ? 'Piano alimentare creato' : 'Piano aggiornato')
@@ -309,6 +443,7 @@ function ModalPiano({ plan, userId, onClose, onDone }) {
                     onChange={(e) => setF({ ...f, notes: e.target.value })}
                     placeholder="Una fonte proteica in ognuno dei 3 pasti più uno spuntino. Carboidrati non tagliati nei giorni di allenamento." />
         </label>
+        {nuovo && <p className="text-sm text-muted">Dopo la creazione aggiungi tu i giorni e i pasti che ti servono.</p>}
         <button className="btn-primary w-full" disabled={busy}>{busy ? 'Salvo…' : 'Salva piano'}</button>
       </form>
     </Modal>
