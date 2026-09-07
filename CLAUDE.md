@@ -79,8 +79,11 @@ scrittura del god (`canEdit` è `isGod || isSemiGod` in `AuthContext`), ma le po
 (`public.is_semi_god()`) glieli concedono solo sulle righe dove `user_id = auth.uid()`: può
 modificare la propria scheda e dieta, non quella di nessun altro. Non vede la lista Atleti né
 la libreria Esercizi (route e tab restano `isGod`-only in App.jsx e Layout.jsx) — è pensato per
-un atleta a cui si vuole permettere di autogestirsi, non per un secondo coach. Si assegna con
-`update profiles set role = 'semi_god' where email = '...'`.
+un atleta a cui si vuole permettere di autogestirsi, non per un secondo coach. Si assegna anche
+da frontend: in Atleti.jsx, ogni riga ha una `<select>` Atleta/Semi-god (niente conferma,
+`cambiaRuolo()` scrive direttamente e aggiorna lo stato in locale). Chi ha già `role = 'god'`
+mostra invece un badge fisso "Coach", non modificabile da lì: promuovere qualcuno a god resta
+volutamente un'azione da SQL diretto, non un click veloce in una select a due opzioni.
 
 **La chiave `service_role` non entra mai nel frontend.** È il motivo per cui il coach non può
 creare gli account degli atleti: si registrano loro e poi compaiono nella lista. Se serve
@@ -192,18 +195,18 @@ non lo scarica mai.
 3. **Diario alimentare**: spunta dei pasti consumati giorno per giorno.
 4. **Edge Function** per creare gli account atleta dal pannello coach.
 
-Fatto: **la seduta in palestra** ha ora un timer di recupero (`useTimerRecupero` in
-Allenamento.jsx, parte da solo dopo il salvataggio o a tocco su "Avvia recupero", con un doppio
-beep generato via Web Audio API allo scadere oltre alla vibrazione), la spunta verde sugli
-esercizi già registrati oggi, e il carico precompilato con l'ultima volta quando non c'è ancora
-una riga per oggi.
+Fatto: **la seduta in palestra** ha un timer di recupero (`useTimerRecupero` in Allenamento.jsx)
+che parte **solo** al tocco del pulsante "Recupero Ns" — mai da solo dopo aver salvato un
+carico, per scelta esplicita dell'utente: un avvio automatico si sentiva invadente. Allo scadere:
+5 colpi d'onda quadra a 1050 Hz (non un bip sinusoidale morbido: un'onda quadra taglia meglio nel
+rumore di sottofondo di una palestra) più una vibrazione a impulsi `[200,100,200,100,200]`. Più
+la spunta verde sugli esercizi già registrati oggi, e il carico precompilato con l'ultima volta
+quando non c'è ancora una riga per oggi.
 
 Fatto: **sezione Progressi** — grafico del peso, grafico del carico nel tempo per esercizio
 (select per sceglierlo, raggruppato per nome via `workout_items.exercise_id`: funziona anche
-tra schede diverse, non solo dentro quella attiva) e foto prima/ora a confronto. Usa ancora la
-sfumatura vettoriale (`accent`) come Atleti/Esercizi: manca la foto di sfondo in
-`src/assets/bg/progressi.jpg` — quando arriva, sostituire il `<Section accent>` con
-`<IntestazioneFoto>` come nelle altre pagine.
+tra schede diverse, non solo dentro quella attiva) e foto prima/ora a confronto. Ha la sua foto
+di sfondo (`src/assets/bg/progressi.jpg`) e usa `<IntestazioneFoto>` come le altre pagine.
 
 Difetti noti, piccoli ma reali:
 

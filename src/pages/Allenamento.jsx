@@ -11,8 +11,9 @@ import fotoScheda from '../assets/bg/scheda.jpg'
 
 const oggi = () => new Date().toISOString().slice(0, 10)
 
-/* Countdown di recupero: parte quando si registra un carico o si tocca "Avvia recupero".
-   Vive qui, non in un context, perché serve solo mentre si è su questa pagina. */
+/* Countdown di recupero: parte solo quando si tocca il pulsante "Recupero Ns",
+   mai da solo dopo aver salvato un carico. Vive qui, non in un context, perché
+   serve solo mentre si è su questa pagina. */
 function useTimerRecupero() {
   const [stato, setStato] = useState(null)   // { fine, durata, nome }
   const [restante, setRestante] = useState(0)
@@ -30,22 +31,31 @@ function useTimerRecupero() {
     return audioRef.current
   }
 
+  // Sveglia vera, non un bip educato: onda quadra (più "cattiva" della sinusoide,
+  // taglia meglio nel rumore di sottofondo di una palestra) e 5 colpi rapidi
+  // invece di un doppio bip. Il volume resta comunque quello del telefono in
+  // quel momento: qui possiamo solo controllare quanto "forte" generiamo il
+  // suono relativo a quel volume, non superarlo.
   const suona = () => {
     const ctx = audioCtx()
     if (!ctx) return
     const ora = ctx.currentTime
-    ;[0, 0.32].forEach((ritardo) => {
+    const COLPI = 5
+    const DURATA = 0.13
+    const PAUSA = 0.09
+    for (let i = 0; i < COLPI; i++) {
+      const inizio = ora + i * (DURATA + PAUSA)
       const osc = ctx.createOscillator()
       const vol = ctx.createGain()
-      osc.type = 'sine'
-      osc.frequency.value = 880
-      vol.gain.setValueAtTime(0.0001, ora + ritardo)
-      vol.gain.exponentialRampToValueAtTime(0.35, ora + ritardo + 0.02)
-      vol.gain.exponentialRampToValueAtTime(0.0001, ora + ritardo + 0.25)
+      osc.type = 'square'
+      osc.frequency.value = 1050
+      vol.gain.setValueAtTime(0.0001, inizio)
+      vol.gain.exponentialRampToValueAtTime(0.6, inizio + 0.015)
+      vol.gain.exponentialRampToValueAtTime(0.0001, inizio + DURATA)
       osc.connect(vol); vol.connect(ctx.destination)
-      osc.start(ora + ritardo)
-      osc.stop(ora + ritardo + 0.27)
-    })
+      osc.start(inizio)
+      osc.stop(inizio + DURATA + 0.02)
+    }
   }
 
   useEffect(() => {
@@ -53,7 +63,7 @@ function useTimerRecupero() {
     const tick = () => {
       const r = Math.max(0, Math.round((stato.fine - Date.now()) / 1000))
       setRestante(r)
-      if (r === 0) { navigator.vibrate?.(200); suona(); setStato(null) }
+      if (r === 0) { navigator.vibrate?.([200, 100, 200, 100, 200]); suona(); setStato(null) }
     }
     tick()
     const id = setInterval(tick, 250)
@@ -235,10 +245,7 @@ export default function Allenamento() {
         )}
       </Section>
 
-      <ModalLog
-        item={logFor} userId={targetId} onClose={() => setLogFor(null)} onDone={load}
-        onSalvato={(it) => timer.avvia(it.rest_sec, it.exercise?.name)}
-      />
+      <ModalLog item={logFor} userId={targetId} onClose={() => setLogFor(null)} onDone={load} />
       <ModalItem item={editItem} onClose={() => setEditItem(null)} onDone={load} />
       <ModalGiorno
         day={editDay}
@@ -429,17 +436,17 @@ function Esercizio({ item, n, ultimo, oggi, canEdit, onLog, onEdit, onTimer }) {
               </a>
             )}
             <button onClick={onLog} className="btn-primary px-3 py-2 text-sm">Registra i carichi</button>
+            {item.rest_sec ? (
+              <button onClick={onTimer} className="btn-ghost px-3 py-2 text-sm">
+                <IconTimer width={16} height={16} /> Recupero {item.rest_sec}s
+              </button>
+            ) : null}
             {canEdit && (
               <button onClick={onEdit} className="btn-ghost px-3 py-2 text-sm">
                 <IconEdit width={16} height={16} /> Modifica
               </button>
             )}
           </div>
-          {item.rest_sec ? (
-            <button onClick={onTimer} className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand">
-              <IconTimer width={16} height={16} /> Avvia recupero di {item.rest_sec}s
-            </button>
-          ) : null}
         </div>
       )}
     </li>
@@ -447,7 +454,7 @@ function Esercizio({ item, n, ultimo, oggi, canEdit, onLog, onEdit, onTimer }) {
 }
 
 /* ---------------- registrazione carichi ---------------- */
-function ModalLog({ item, userId, onClose, onDone, onSalvato }) {
+function ModalLog({ item, userId, onClose, onDone }) {
   const [riga, setRiga] = useState({ weight_kg: '', reps: '', rir: '', notes: '' })
   const [storico, setStorico] = useState([])
   const [origine, setOrigine] = useState(null)   // 'oggi' | 'ultima' | null
@@ -504,7 +511,6 @@ function ModalLog({ item, userId, onClose, onDone, onSalvato }) {
     setBusy(false)
     if (error) return toast.err(error)
     toast.ok(`Carico registrato · ${item.exercise?.name ?? ''}`)
-    onSalvato?.(item)
     onClose(); onDone()
   }
 

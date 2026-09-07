@@ -29,6 +29,17 @@ export default function Atleti() {
 
   function apri(a) { setViewing(a); navigate('/allenamento') }
 
+  async function cambiaRuolo(a, ruolo) {
+    const { error } = await supabase.from('profiles').update({ role: ruolo }).eq('id', a.id)
+    if (error) return toast.err(error)
+    setRows((prev) => prev.map((r) => (r.id === a.id ? { ...r, role: ruolo } : r)))
+    toast.ok(
+      ruolo === 'semi_god'
+        ? `${a.full_name || a.email} può ora modificare la propria scheda e dieta`
+        : `${a.full_name || a.email} è tornato/a un atleta normale`
+    )
+  }
+
   async function scaricaFoto() {
     setEsportando({ fatte: 0, totali: 0 })
     try {
@@ -66,8 +77,8 @@ export default function Atleti() {
         ) : (
           <ul className="space-y-3">
             {filtrati.map((a) => (
-              <li key={a.id}>
-                <button onClick={() => apri(a)} className="card flex w-full items-center gap-3 p-4 text-left">
+              <li key={a.id} className="card flex items-center gap-3 p-4">
+                <button onClick={() => apri(a)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brandsoft font-cond text-[19px] font-semibold text-brand">
                     {iniziali(a.full_name || a.email)}
                   </span>
@@ -75,8 +86,25 @@ export default function Atleti() {
                     <span className="block font-semibold leading-tight">{a.full_name || 'Senza nome'}</span>
                     <span className="block truncate text-[13px] text-muted">{a.email}</span>
                   </span>
-                  <IconChevron width={18} height={18} className="text-muted" />
+                  <IconChevron width={18} height={18} className="shrink-0 text-muted" />
                 </button>
+                {a.role === 'god' ? (
+                  <span className="shrink-0 rounded-lg bg-brandsoft px-2.5 py-2 text-[13px] font-medium text-brand">
+                    Coach
+                  </span>
+                ) : (
+                  <select
+                    className="field w-auto shrink-0 py-2 text-[13px]"
+                    value={a.role}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => cambiaRuolo(a, e.target.value)}
+                    aria-label={`Ruolo di ${a.full_name || a.email}`}
+                    title="Atleta: legge soltanto. Semi-god: può modificare la propria scheda e dieta, ma non vede gli altri atleti."
+                  >
+                    <option value="atleta">Atleta</option>
+                    <option value="semi_god">Semi-god</option>
+                  </select>
+                )}
               </li>
             ))}
           </ul>
