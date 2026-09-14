@@ -9,6 +9,7 @@ import { esportaFotoMisurazione } from '../lib/esportaFoto'
 import { generaImmagineMisurazione } from '../lib/riepilogoMisura'
 import IntestazioneFoto from '../components/IntestazioneFoto'
 import GraficoAndamento from '../components/GraficoAndamento'
+import GuidaMisure from '../components/GuidaMisure'
 import fotoMisure from '../assets/bg/misure.jpg'
 
 const CAMPI = [
@@ -35,6 +36,7 @@ export default function Misure() {
   const [fase, setFase] = useState('')       // cosa sto facendo, mentre salvo
   const [scaricando, setScaricando] = useState(null)   // id della misurazione di cui sto zippando le foto
   const [generando, setGenerando] = useState(null)     // id della misurazione di cui sto creando il riepilogo
+  const [guidaAperta, setGuidaAperta] = useState(false)
   const toast = useToast()
   const chiedi = useConfirm()
 
@@ -290,6 +292,15 @@ export default function Misure() {
         <form onSubmit={salva} className="space-y-4">
           <Field label="Data" type="date" value={form.date}
                  onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+
+          <button
+            type="button"
+            onClick={() => setGuidaAperta(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brandsoft px-3 py-1.5 text-[13px] font-medium text-brand"
+          >
+            <IconRuler width={15} height={15} /> Dove si prendono le misure?
+          </button>
+
           <div className="grid grid-cols-2 gap-3">
             {CAMPI.map(({ k, l, u }) => (
               <Field key={k} label={`${l} (${u})`} type="number" step="0.1" inputMode="decimal"
@@ -313,6 +324,10 @@ export default function Misure() {
           </div>
           {busy && fase && <p className="text-center text-[13px] text-muted">{fase}</p>}
         </form>
+      </Modal>
+
+      <Modal open={guidaAperta} onClose={() => setGuidaAperta(false)} title="Dove si prendono le misure" z="z-[55]">
+        <GuidaMisure />
       </Modal>
     </>
   )

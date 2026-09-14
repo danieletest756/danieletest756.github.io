@@ -36,6 +36,7 @@ src/
   components/ui.jsx       icone SVG inline, Modal, Field, Section, Empty, Spinner
   components/Feedback.jsx notifiche a scomparsa e finestre di conferma
   components/FotoMisura.jsx scelta, galleria e visualizzatore a schermo intero
+  components/GuidaMisure.jsx sagome uomo/donna con i punti dove misurare (SVG disegnato a mano)
   components/GraficoAndamento.jsx grafico a linea condiviso (peso, carichi) — porta con sé recharts
   pages/Login.jsx
   pages/Allenamento.jsx   giorni, esercizi, video, registrazione carichi, editor coach
@@ -205,6 +206,13 @@ rispetto alla misurazione precedente e le note, pensata per essere condivisa da 
 `ctx.font` va cambiato SOLO dopo aver misurato la larghezza del testo con il font precedente
 (`ctx.measureText` legge il font attivo in quel momento), altrimenti il delta si sovrappone al
 valore invece di stargli a fianco — bug già preso e corretto una volta.
+
+**Guida alle misure** (`components/GuidaMisure.jsx`): pulsante "Dove si prendono le misure?" nel
+form "Nuova misurazione" di Misure.jsx, apre una Modal con due sagome (uomo/donna) e 6 punti
+numerati + legenda. Le sagome sono SVG disegnato a mano (path fissi, non generati), coerenti con
+lo stile delle icone di `ui.jsx`: niente foto stock da cercare/licenziare per una cosa che è solo
+un diagramma. I numeri 1-6 seguono l'ordine di `CAMPI` in Misure.jsx (Petto, Vita, Fianchi,
+Coscia, Metà gluteo, Polpaccio) — se cambi l'ordine o i campi lì, aggiorna anche `PUNTI` qui.
 
 ## Lavori aperti, in ordine di utilità
 
