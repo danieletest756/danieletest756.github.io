@@ -10,6 +10,7 @@ import Allenamento from './pages/Allenamento'
 import Dieta from './pages/Dieta'
 const Atleti = lazy(() => import('./pages/Atleti'))
 const Esercizi = lazy(() => import('./pages/Esercizi'))
+const Segnalazioni = lazy(() => import('./pages/Segnalazioni'))
 import { Spinner } from './components/ui'
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/misure" element={<Misure />} />
         <Route path="/progressi" element={<Progressi />} />
         <Route path="/profilo" element={<Profilo />} />
+        <Route path="/feedback" element={<Segnalazioni />} />
         {isGod && <Route path="/atleti" element={<Atleti />} />}
         {isGod && <Route path="/esercizi" element={<Esercizi />} />}
         <Route path="*" element={<Navigate to={isGod ? '/atleti' : '/allenamento'} replace />} />

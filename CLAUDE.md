@@ -31,6 +31,7 @@ src/
   lib/AuthContext.jsx     sessione, profilo, ruolo, atleta selezionato dal coach
   lib/foto.js             upload, link firmati ed eliminazione delle foto misure
   lib/immagini.js         compressione su canvas prima del caricamento
+  lib/riepilogoMisura.js  immagine PNG riassuntiva di una misurazione (canvas nativo)
   components/Layout.jsx   intestazione + barra di navigazione inferiore
   components/ui.jsx       icone SVG inline, Modal, Field, Section, Empty, Spinner
   components/Feedback.jsx notifiche a scomparsa e finestre di conferma
@@ -40,16 +41,18 @@ src/
   pages/Allenamento.jsx   giorni, esercizi, video, registrazione carichi, editor coach
   pages/Dieta.jsx         macro obiettivo, giorni, pasti, alimenti
   pages/Misure.jsx        storico, differenze, grafico peso, foto
-  pages/Progressi.jsx     grafico peso, grafico carichi per esercizio, foto prima/ora
+  pages/Progressi.jsx     stat riassuntive, grafici (peso, altre misure, carichi), record, foto prima/ora
   pages/Profilo.jsx       dati personali + note private del coach
-  pages/Atleti.jsx        elenco atleti, copia scheda        (solo coach)
-  pages/Esercizi.jsx      libreria con immagini e video      (solo coach)
+  pages/Segnalazioni.jsx  bug/migliorie segnalati da chi usa l'app     (tab "Feedback")
+  pages/Atleti.jsx        elenco atleti, ruoli, copia scheda   (solo coach)
+  pages/Esercizi.jsx      libreria con immagini e video        (solo coach)
 supabase/
   schema.sql              tabelle, trigger, funzioni, policy RLS, bucket storage
   migration_foto_misure.sql       da eseguire sui progetti creati prima delle foto
   migration_workout_log_notes.sql da eseguire sui progetti creati prima delle note sui carichi
   migration_semi_god.sql          da eseguire sui progetti creati prima del ruolo semi-god
   migration_diet_days.sql         da eseguire sui progetti creati prima dei giorni nella dieta
+  migration_feedback.sql          da eseguire sui progetti creati prima della sezione Feedback
   seed_esercizi.sql       25 esercizi di partenza
 templates/
   scheda_allenamento_template.sql  da far compilare a un'IA insieme al PDF di un atleta
@@ -84,6 +87,14 @@ da frontend: in Atleti.jsx, ogni riga ha una `<select>` Atleta/Semi-god (niente 
 `cambiaRuolo()` scrive direttamente e aggiorna lo stato in locale). Chi ha già `role = 'god'`
 mostra invece un badge fisso "Coach", non modificabile da lì: promuovere qualcuno a god resta
 volutamente un'azione da SQL diretto, non un click veloce in una select a due opzioni.
+
+**Segnalazioni.jsx (tab "Feedback") non passa da `targetId`/`viewing`.** Riguarda l'esperienza
+di chi sta davvero usando l'app in quel momento (bug, migliorie, idee), non la scheda o la dieta
+di un atleta: scrive sempre con `user_id = profile.id` (l'utente loggato davvero), mai sul
+`target` selezionato dal coach. Le policy RLS (`feedback_select`/`feedback_insert`) fanno il resto:
+ognuno vede solo le proprie segnalazioni, il god le vede e ne cambia lo stato tutte. Se aggiungi
+un'altra pagina che non riguarda "i dati di un atleta" ma l'app in sé, segui questo esempio, non
+il pattern `targetId`.
 
 **La chiave `service_role` non entra mai nel frontend.** È il motivo per cui il coach non può
 creare gli account degli atleti: si registrano loro e poi compaiono nella lista. Se serve
@@ -146,14 +157,15 @@ scaricala e comprimila a una dimensione simile prima di metterla in `public/img/
 
 ## Stato attuale
 
-Funzionante e compilabile (`npm run build` passa, ~124 kB gzip iniziali). Girata in locale.
+Funzionante e compilabile (`npm run build` passa, ~127 kB gzip iniziali). Girata in locale.
 Hosting, dominio e login Google sono volutamente accantonati.
 
 **Chi riprende in mano il progetto: se il database Supabase è stato creato prima delle foto,
 esegui `supabase/migration_foto_misure.sql` nel SQL Editor, altrimenti la pagina Misure non
 trova la tabella `measurement_photos` e le foto non si caricano. Se era stato creato prima
 delle note sui carichi, esegui anche `supabase/migration_workout_log_notes.sql`. Se era stato
-creato prima del ruolo semi-god, esegui anche `supabase/migration_semi_god.sql`.**
+creato prima del ruolo semi-god, esegui anche `supabase/migration_semi_god.sql`. Se era stato
+creato prima della sezione Feedback, esegui anche `supabase/migration_feedback.sql`.**
 
 **L'app è installabile (PWA)**: `public/manifest.webmanifest`, `public/sw.js` (service worker
 minimo, scritto a mano, nessuna dipendenza) e le icone in `public/icons/` (generate da
@@ -185,6 +197,15 @@ firmati già caricati dalla pagina. `jszip` è l'unica dipendenza "pesante" del 
 entrambi i casi si carica solo con un `import()` dinamico al click del pulsante: chi non lo usa
 non lo scarica mai.
 
+**Riepilogo di una misurazione** (`lib/riepilogoMisura.js`): pulsante a icona in Misure, di fianco
+a quello che zippa le foto, ma per i *numeri* della misurazione, non per le foto. Genera
+un'immagine PNG (canvas nativo, nessuna libreria PDF) con le misure di quel giorno, la variazione
+rispetto alla misurazione precedente e le note, pensata per essere condivisa da telefono
+(WhatsApp, Messaggi) o salvata in galleria — non per essere stampata. Attenzione se la tocchi:
+`ctx.font` va cambiato SOLO dopo aver misurato la larghezza del testo con il font precedente
+(`ctx.measureText` legge il font attivo in quel momento), altrimenti il delta si sovrappone al
+valore invece di stargli a fianco — bug già preso e corretto una volta.
+
 ## Lavori aperti, in ordine di utilità
 
 1. **Progressione settimanale**: la scheda originale prevede 8 settimane con RIR decrescente
@@ -203,10 +224,20 @@ rumore di sottofondo di una palestra) più una vibrazione a impulsi `[200,100,20
 la spunta verde sugli esercizi già registrati oggi, e il carico precompilato con l'ultima volta
 quando non c'è ancora una riga per oggi.
 
-Fatto: **sezione Progressi** — grafico del peso, grafico del carico nel tempo per esercizio
-(select per sceglierlo, raggruppato per nome via `workout_items.exercise_id`: funziona anche
-tra schede diverse, non solo dentro quella attiva) e foto prima/ora a confronto. Ha la sua foto
-di sfondo (`src/assets/bg/progressi.jpg`) e usa `<IntestazioneFoto>` come le altre pagine.
+Fatto: **sezione Progressi** — non solo il grafico del peso: tre statistiche in evidenza (sedute
+negli ultimi 30 giorni, peso attuale con variazione dall'inizio, record in evidenza), il grafico
+del peso, un grafico per le altre misure del corpo (stessi campi di Misure, select per
+sceglierlo), il grafico del carico nel tempo per esercizio (select, raggruppato per nome via
+`workout_items.exercise_id`: funziona anche tra schede diverse, non solo dentro quella attiva),
+un elenco di record personali (peso massimo mai registrato per ogni esercizio, con la data) e le
+foto prima/ora a confronto. Ha la sua foto di sfondo (`src/assets/bg/progressi.jpg`) e usa
+`<IntestazioneFoto>` come le altre pagine.
+
+Fatto: **sezione Feedback** (`pages/Segnalazioni.jsx`, tab in fondo alla barra di navigazione) —
+chiunque può segnalare un bug, una miglioria o un'idea con una nota libera; il god le vede tutte
+(con il nome di chi le ha scritte) e ne cambia lo stato (nuovo/in lavorazione/risolto), chi non è
+god vede solo le proprie. Non c'è una pagina "vuota" con foto di sfondo: è una pagina utility come
+Atleti/Esercizi, non una pagina personale/motivazionale.
 
 Difetti noti, piccoli ma reali:
 
@@ -219,6 +250,6 @@ Difetti noti, piccoli ma reali:
 
 - Non aggiungere TypeScript o cambiare build tool senza chiedere.
 - Non spostare la logica dei permessi nel frontend "per semplicità".
-- Non introdurre dipendenze pesanti: il bundle iniziale sta a ~124 kB gzip e va tenuto basso,
+- Non introdurre dipendenze pesanti: il bundle iniziale sta a ~127 kB gzip e va tenuto basso,
   gli atleti aprono l'app in palestra con la connessione che capita. `recharts` è già caricato
-  in lazy loading solo sulla pagina Misure: mantieni quel pattern.
+  in lazy loading solo su Misure e Progressi (via `GraficoAndamento.jsx`): mantieni quel pattern.

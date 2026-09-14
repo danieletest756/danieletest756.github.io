@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
-import { IconDumbbell, IconPlate, IconRuler, IconChart, IconUser, IconTeam } from './ui'
+import { IconDumbbell, IconPlate, IconRuler, IconChart, IconUser, IconTeam, IconFeedback } from './ui'
 import { Sfumatura } from './Decor'
 
 const tabs = [
@@ -9,6 +9,7 @@ const tabs = [
   { to: '/misure',      label: 'Misure',    Icon: IconRuler },
   { to: '/progressi',   label: 'Progressi', Icon: IconChart },
   { to: '/profilo',     label: 'Profilo',   Icon: IconUser },
+  { to: '/feedback',    label: 'Feedback',  Icon: IconFeedback },
 ]
 
 /*
@@ -60,17 +61,17 @@ export default function Layout() {
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium ${
+                `flex min-w-0 flex-1 flex-col items-center gap-1 px-0.5 py-2.5 text-[10px] font-medium ${
                   isActive ? 'text-brand' : 'text-muted'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <span className={`rounded-lg px-3 py-1 ${isActive ? 'bg-brandsoft' : ''}`}>
+                  <span className={`rounded-lg px-2.5 py-1 ${isActive ? 'bg-brandsoft' : ''}`}>
                     <Icon width={21} height={21} />
                   </span>
-                  {label}
+                  <span className="max-w-full truncate">{label}</span>
                 </>
               )}
             </NavLink>

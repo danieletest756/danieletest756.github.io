@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
-import { Section, Modal, Field, Empty, Spinner, IconPlus, IconTrash, IconRuler, IconDownload } from '../components/ui'
+import { Section, Modal, Field, Empty, Spinner, IconPlus, IconTrash, IconRuler, IconDownload, IconShare } from '../components/ui'
 import { useToast, useConfirm } from '../components/Feedback'
 import { SceltaFoto, Galleria } from '../components/FotoMisura'
 import { caricaFoto, urlFirmati } from '../lib/foto'
 import { esportaFotoMisurazione } from '../lib/esportaFoto'
+import { generaImmagineMisurazione } from '../lib/riepilogoMisura'
 import IntestazioneFoto from '../components/IntestazioneFoto'
 import GraficoAndamento from '../components/GraficoAndamento'
 import fotoMisure from '../assets/bg/misure.jpg'
@@ -23,7 +24,7 @@ const CAMPI = [
 const oggi = () => new Date().toISOString().slice(0, 10)
 
 export default function Misure() {
-  const { targetId } = useAuth()
+  const { targetId, target } = useAuth()
   const [rows, setRows] = useState(null)
   const [foto, setFoto] = useState({})       // { measurement_id: [foto, ...] }
   const [urls, setUrls] = useState({})       // { path: link firmato }
@@ -33,6 +34,7 @@ export default function Misure() {
   const [busy, setBusy] = useState(false)
   const [fase, setFase] = useState('')       // cosa sto facendo, mentre salvo
   const [scaricando, setScaricando] = useState(null)   // id della misurazione di cui sto zippando le foto
+  const [generando, setGenerando] = useState(null)     // id della misurazione di cui sto creando il riepilogo
   const toast = useToast()
   const chiedi = useConfirm()
 
@@ -129,6 +131,38 @@ export default function Misure() {
     }
   }
 
+  async function scaricaRiepilogo(r, precedente) {
+    setGenerando(r.id)
+    try {
+      const righe = CAMPI.filter(({ k }) => r[k] != null).map(({ k, l, u }) => {
+        const prima = precedente?.[k]
+        let delta = null
+        if (prima != null) {
+          const d = Math.round((r[k] - prima) * 10) / 10
+          if (d !== 0) delta = `${d > 0 ? '+' : ''}${d} ${u}`
+        }
+        return { label: l, valore: r[k], unita: u, delta }
+      })
+      const blob = await generaImmagineMisurazione({
+        nomeAtleta: target?.full_name || target?.email || 'Le mie misure',
+        dataLabel: new Date(r.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }),
+        righe,
+        note: r.notes || null,
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `misura-${r.date}.png`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.ok('Immagine scaricata')
+    } catch (err) {
+      toast.err(err)
+    } finally {
+      setGenerando(null)
+    }
+  }
+
   async function elimina(r) {
     const n = (foto[r.id] ?? []).length
     const ok = await chiedi({
@@ -197,13 +231,23 @@ export default function Misure() {
             )}
 
             <div className="space-y-3">
-              {rows.map((r) => (
+              {rows.map((r, i) => (
                 <div key={r.id} className="card p-4">
                   <div className="mb-2.5 flex items-center justify-between">
                     <p className="font-cond text-[19px] font-semibold">
                       {new Date(r.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                     <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => scaricaRiepilogo(r, rows[i + 1])}
+                        disabled={generando === r.id}
+                        className="p-1 text-muted hover:text-brand disabled:opacity-50"
+                        aria-label="Scarica il riepilogo di questa misurazione"
+                      >
+                        {generando === r.id
+                          ? <span className="block h-[18px] w-[18px] animate-spin rounded-full border-2 border-line border-t-brand" />
+                          : <IconShare width={18} height={18} />}
+                      </button>
                       {(foto[r.id]?.length ?? 0) > 0 && (
                         <button
                           onClick={() => scaricaFotoMisurazione(r)}

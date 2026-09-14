@@ -49,6 +49,24 @@ export const IconChart = (p) => (
 export const IconDownload = (p) => (
   <svg {...I(p)}><path d="M12 3v12M7 10l5 5 5-5" /><path d="M4 19h16" /></svg>
 )
+export const IconShare = (p) => (
+  <svg {...I(p)}>
+    <circle cx="18" cy="5.5" r="2.6" /><circle cx="6" cy="12" r="2.6" /><circle cx="18" cy="18.5" r="2.6" />
+    <path d="m8.3 10.6 7.4-4.3M8.3 13.4l7.4 4.3" />
+  </svg>
+)
+export const IconFeedback = (p) => (
+  <svg {...I(p)}>
+    <path d="M4 5.5h16v10H9.5L5 19.5V15.5H4Z" />
+    <path d="M8 9.5h8M8 12.5h5" />
+  </svg>
+)
+export const IconAward = (p) => (
+  <svg {...I(p)}>
+    <circle cx="12" cy="9" r="5.5" />
+    <path d="m8.3 13.8-1.6 6.7 5.3-2.4 5.3 2.4-1.6-6.7" />
+  </svg>
+)
 
 /* ---------- Blocchi ---------- */
 /** `accent`: vero (o "brand"/"saffron") disegna una sfumatura dietro al titolo.
