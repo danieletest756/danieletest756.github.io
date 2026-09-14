@@ -42,7 +42,7 @@ src/
   pages/Allenamento.jsx   giorni, esercizi, video, registrazione carichi, editor coach
   pages/Dieta.jsx         macro obiettivo, giorni, pasti, alimenti
   pages/Misure.jsx        storico, differenze, grafico peso, foto
-  pages/Progressi.jsx     stat riassuntive, grafici (peso, altre misure, carichi), record, foto prima/ora
+  pages/Progressi.jsx     obiettivi, stat riassuntive, grafici (peso, altre misure, carichi), record, foto
   pages/Profilo.jsx       dati personali + note private del coach
   pages/Segnalazioni.jsx  bug/migliorie segnalati da chi usa l'app     (tab "Feedback")
   pages/Atleti.jsx        elenco atleti, ruoli, copia scheda   (solo coach)
@@ -54,6 +54,7 @@ supabase/
   migration_semi_god.sql          da eseguire sui progetti creati prima del ruolo semi-god
   migration_diet_days.sql         da eseguire sui progetti creati prima dei giorni nella dieta
   migration_feedback.sql          da eseguire sui progetti creati prima della sezione Feedback
+  migration_goals.sql             da eseguire sui progetti creati prima degli Obiettivi
   seed_esercizi.sql       25 esercizi di partenza
 templates/
   scheda_allenamento_template.sql  da far compilare a un'IA insieme al PDF di un atleta
@@ -166,7 +167,8 @@ esegui `supabase/migration_foto_misure.sql` nel SQL Editor, altrimenti la pagina
 trova la tabella `measurement_photos` e le foto non si caricano. Se era stato creato prima
 delle note sui carichi, esegui anche `supabase/migration_workout_log_notes.sql`. Se era stato
 creato prima del ruolo semi-god, esegui anche `supabase/migration_semi_god.sql`. Se era stato
-creato prima della sezione Feedback, esegui anche `supabase/migration_feedback.sql`.**
+creato prima della sezione Feedback, esegui anche `supabase/migration_feedback.sql`. Se era stato
+creato prima degli Obiettivi in Progressi, esegui anche `supabase/migration_goals.sql`.**
 
 **L'app è installabile (PWA)**: `public/manifest.webmanifest`, `public/sw.js` (service worker
 minimo, scritto a mano, nessuna dipendenza) e le icone in `public/icons/` (generate da
@@ -240,6 +242,21 @@ sceglierlo), il grafico del carico nel tempo per esercizio (select, raggruppato 
 un elenco di record personali (peso massimo mai registrato per ogni esercizio, con la data) e le
 foto prima/ora a confronto. Ha la sua foto di sfondo (`src/assets/bg/progressi.jpg`) e usa
 `<IntestazioneFoto>` come le altre pagine.
+
+Fatto: **Obiettivi** (dentro Progressi, tabella `goals`) — il coach (o il semi-god su se stesso)
+imposta un traguardo su una misura del corpo, sul peso o sul carico di un esercizio specifico,
+con un valore di partenza e uno obiettivo; Progressi lo mostra come anello di avanzamento (SVG,
+`stroke-dasharray` sulla circonferenza, niente libreria). La percentuale è
+`(attuale - partenza) / (obiettivo - partenza)`, clampata 0-100%: la stessa formula regge sia un
+obiettivo "in salita" (forza, peso da aumentare) sia uno "in discesa" (peso o vita da diminuire),
+perché entrambi i lati della sottrazione cambiano segno insieme. `attuale` per una misura del
+corpo è l'ultimo valore non nullo di quel campo in `measurements` (non l'ultima riga in assoluto:
+una riga può avere altri campi nulli), per un esercizio è il carico massimo mai registrato in
+`workout_logs` per quel `exercise_id` — bug **da evitare**: non usare `perEsercizio`/`record`
+(raggruppati per *nome*, per la lista Record personali) per calcolare questo, serve un indice
+separato per `exercise_id` (`recordPorId`) perché un obiettivo punta a un id, non a una stringa.
+A differenza di Segnalazioni.jsx, gli Obiettivi passano da `targetId` come scheda e dieta: sono
+dati scritti dal coach per un atleta specifico, non un input libero di chi è loggato.
 
 Fatto: **sezione Feedback** (`pages/Segnalazioni.jsx`, tab in fondo alla barra di navigazione) —
 chiunque può segnalare un bug, una miglioria o un'idea con una nota libera; il god le vede tutte

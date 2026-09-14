@@ -197,6 +197,25 @@ create table if not exists public.app_feedback (
 );
 create index if not exists app_feedback_idx on public.app_feedback(created_at desc);
 
+-- ---------- 7. OBIETTIVI ----------
+-- Un traguardo concreto su una misura del corpo o su un carico ("arrivare a 75 kg",
+-- "portare la panca a 80 kg"). start_value è lo scatto di partenza: si calcola la
+-- percentuale come (attuale - partenza) / (obiettivo - partenza), formula che
+-- funziona sia per chi deve salire (forza) sia per chi deve scendere (peso, vita).
+create table if not exists public.goals (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references public.profiles(id) on delete cascade,
+  title        text not null,
+  metric       text not null check (metric in
+    ('weight_kg','chest_cm','waist_cm','hips_cm','thigh_cm','glute_cm','calf_cm','exercise')),
+  exercise_id  uuid references public.exercises(id) on delete set null,  -- solo se metric = 'exercise'
+  start_value  numeric not null,
+  target_value numeric not null,
+  target_date  date,
+  created_at   timestamptz not null default now()
+);
+create index if not exists goals_user_idx on public.goals(user_id, created_at desc);
+
 -- ============================================================
 --  ROW LEVEL SECURITY
 -- ============================================================
@@ -213,6 +232,7 @@ alter table public.diet_days     enable row level security;
 alter table public.diet_meals    enable row level security;
 alter table public.diet_foods    enable row level security;
 alter table public.app_feedback  enable row level security;
+alter table public.goals         enable row level security;
 
 -- PROFILI: ognuno vede e modifica il suo, il god vede e modifica tutti
 drop policy if exists profiles_select on public.profiles;
@@ -356,6 +376,16 @@ create policy feedback_update on public.app_feedback for update
 drop policy if exists feedback_delete on public.app_feedback;
 create policy feedback_delete on public.app_feedback for delete
   using (user_id = auth.uid() or public.is_god());
+
+-- OBIETTIVI: stesso schema di scheda/dieta — l'atleta legge i suoi, il god fa
+-- tutto, il semi-god scrive solo sui propri.
+drop policy if exists goals_select on public.goals;
+create policy goals_select on public.goals for select
+  using (user_id = auth.uid() or public.is_god());
+drop policy if exists goals_write on public.goals;
+create policy goals_write on public.goals for all
+  using (public.is_god() or (public.is_semi_god() and user_id = auth.uid()))
+  with check (public.is_god() or (public.is_semi_god() and user_id = auth.uid()));
 
 -- ============================================================
 --  STORAGE per le immagini degli esercizi (bucket pubblico)

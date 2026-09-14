@@ -61,6 +61,9 @@ export const IconFeedback = (p) => (
     <path d="M8 9.5h8M8 12.5h5" />
   </svg>
 )
+export const IconTarget = (p) => (
+  <svg {...I(p)}><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="0.8" fill="currentColor" /></svg>
+)
 export const IconAward = (p) => (
   <svg {...I(p)}>
     <circle cx="12" cy="9" r="5.5" />
