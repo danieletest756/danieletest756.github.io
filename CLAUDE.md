@@ -34,6 +34,7 @@ src/
   lib/riepilogoMisura.js  immagine PNG riassuntiva di una misurazione (canvas nativo)
   lib/ics.js              file .ics per aggiungere un appuntamento al calendario del telefono
   lib/obiettivoCorpo.js   decide se una variazione di misura è un progresso, in base all'obiettivo
+  lib/importaScheda.js    crea una scheda intera (giorni+esercizi) da un JSON, senza passare da Supabase
   components/Layout.jsx   intestazione + barra di navigazione inferiore
   components/ui.jsx       icone SVG inline, Modal, Field, Section, Empty, Spinner
   components/Feedback.jsx notifiche a scomparsa e finestre di conferma
@@ -41,7 +42,7 @@ src/
   components/GuidaMisure.jsx sagome uomo/donna con i punti dove misurare (SVG disegnato a mano)
   components/GraficoAndamento.jsx grafico a linea condiviso (peso, carichi) — porta con sé recharts
   pages/Login.jsx
-  pages/Allenamento.jsx   giorni, esercizi, video, carichi, check-in, settimana attuale, editor coach
+  pages/Allenamento.jsx   giorni, esercizi, video, carichi, check-in, settimana attuale, import JSON
   pages/Dieta.jsx         macro obiettivo, giorni, pasti, alimenti, diario dei pasti consumati
   pages/Misure.jsx        storico, differenze, grafico peso, foto
   pages/Progressi.jsx     obiettivi, aderenza, stat, grafici (peso, misure, check-in, carichi), record, foto
@@ -64,9 +65,10 @@ supabase/
   seed_esercizi.sql       25 esercizi di partenza
   functions/create-athlete/       Edge Function, va distribuita con la CLI (non con l'SQL Editor)
 templates/
-  scheda_allenamento_template.sql  da far compilare a un'IA insieme al PDF di un atleta
-  scheda_dieta_template.sql        idem, per il piano alimentare
-  README.md                        come si usano (non sono script da eseguire direttamente)
+  scheda_allenamento_template.sql  da far compilare a un'IA, risultato va nel SQL Editor
+  scheda_allenamento_import.json   idem ma per l'import da dentro l'app (via consigliata)
+  scheda_dieta_template.sql        idem al primo, per il piano alimentare (non ha un import in-app)
+  README.md                        come si usano (non sono script/JSON da eseguire/incollare direttamente)
 ```
 
 ## Concetti da conoscere prima di toccare il codice
@@ -393,6 +395,21 @@ Supabase stessa. **Questa è l'unica parte del progetto che non basta "incollare
 va distribuita con la Supabase CLI (`supabase functions deploy create-athlete`), istruzioni
 complete nel `README.md`, punto 7. Finché non è distribuita, il pulsante c'è ma fallisce con un
 errore chiaro al primo utilizzo — non un fallimento silenzioso.
+
+Fatto: **importare una scheda da JSON** (`lib/importaScheda.js`, pulsante "Importa da JSON" /
+"Sostituisci con un'importazione (JSON)" in Allenamento.jsx) — alternativa al workflow
+"IA → SQL → SQL Editor di Supabase" usato finora: qui il coach dà in pasto a un'IA
+`templates/scheda_allenamento_import.json` invece del template SQL, e il risultato lo incolla
+in una casella di testo **dentro l'app**, non su Supabase. Nessuna email da cercare (l'app sa già
+di quale atleta si tratta dalla pagina in cui ci si trova, `targetId`), nessuna chiave, nessuna
+query scritta a mano: la funzione fa le stesse `insert` che farebbe il coach a mano dai modali,
+con la sessione già autenticata. Gli esercizi si abbinano alla libreria per nome (case-insensitive,
+tutta la libreria letta in una query sola per non farne una per ogni esercizio) e quelli nuovi
+vengono creati al volo. Importare disattiva la scheda attiva precedente (se c'è) esattamente come
+crearne una nuova a mano — non la cancella, resta nel database. **Il piano alimentare non ha
+ancora un equivalente**: per la dieta resta solo la via SQL (`scheda_dieta_template.sql`); se un
+domani serve anche lì, lo stesso pattern (`importaScheda.js` → `importaDieta.js`) si ripete quasi
+identico.
 
 ## Cose da non fare
 

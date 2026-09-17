@@ -1,0 +1,54 @@
+{
+  "_leggimi": [
+    "Non incollare questo file così com'è nell'app: è un TEMPLATE con dei <<segnaposto>>",
+    "da far compilare a un'IA insieme al PDF/testo della scheda di un atleta, con un prompt tipo:",
+    "'Compila questo template JSON con i dati di questa scheda, sostituendo ogni <<segnaposto>>.",
+    "Segui alla lettera le istruzioni scritte in _leggimi e _istruzioni. Alla fine il risultato deve",
+    "essere JSON valido: nessun <<...>>, nessun commento, nessuna virgola in più.'",
+    "",
+    "A differenza del template SQL (scheda_allenamento_template.sql), qui NON serve l'email",
+    "dell'atleta: lo apri già dall'app (Atleti → l'atleta → Allenamento → 'Sostituisci con",
+    "un'importazione (JSON)', oppure 'Importa da JSON' se non ha ancora una scheda) e incolli",
+    "il JSON compilato in quella casella. L'app sa già di chi è, dalla pagina in cui ti trovi.",
+    "",
+    "Cancella questo campo _leggimi e il campo _istruzioni dal risultato finale: servono solo",
+    "come istruzioni per l'IA, non fanno parte dei dati della scheda."
+  ],
+  "_istruzioni": {
+    "titolo": "Testo libero, il nome della scheda.",
+    "descrizione": "Testo libero e facoltativo (metti null se non serve): RIR, riscaldamento, progressione settimanale se il documento la dà. L'atleta lo legge da un pulsante 'Come leggere la scheda'. Per andare a capo usa \\n dentro la stringa.",
+    "durata_settimane": "Numero di settimane della scheda, es. 8. Se non specificato nel documento, metti 8.",
+    "giorni": "Elenco dei giorni, NELL'ORDINE in cui vanno eseguiti (il primo della lista è il Giorno 1).",
+    "giorni[].titolo": "Es. 'Giorno 1 - Petto e tricipiti', o solo 'Petto (forza)'.",
+    "giorni[].note": "Nota facoltativa in cima al giorno (null se non serve).",
+    "giorni[].esercizi": "Elenco degli esercizi di quel giorno, nell'ordine di esecuzione.",
+    "esercizi[].nome": "Nome dell'esercizio. Si abbina alla libreria condivisa per nome (senza distinguere maiuscole/minuscole): se un esercizio con questo nome esiste già, viene riusato automaticamente — non serve controllare tu a mano. Se non esiste, viene creato al volo con il gruppo muscolare che scrivi qui sotto.",
+    "esercizi[].gruppo_muscolare": "Una di: Quadricipiti, Femorali, Glutei, Polpacci, Petto, Dorso, Spalle, Braccia, Core, Cardio. Usata solo se l'esercizio è nuovo (se esiste già in libreria, questo campo viene ignorato). Metti null se non sei sicuro.",
+    "esercizi[].serie": "Testo libero, non un numero: vanno bene '4', '6-8', '3 + 1 dropset'.",
+    "esercizi[].ripetizioni": "Testo libero: '8-10', '12-15', '30-40 sec', 'AMRAP'.",
+    "esercizi[].rir": "Testo libero o null. Campo fisso per esercizio: se il documento dà una progressione su più settimane (RIR diverso settimana per settimana), non provare a metterla qui — scrivila per intero nella 'descrizione' della scheda e lascia questo a null.",
+    "esercizi[].recupero_sec": "Numero in SECONDI, o null se non indicato. Se il testo dice '2-3 min' usa il punto medio (150). Non inventare un recupero se il documento non lo dà.",
+    "esercizi[].note": "Testo libero o null. Usalo anche per un'alternativa indicata nel documento, es. 'In alternativa: Leg press.'"
+  },
+
+  "titolo": "<<Titolo della scheda>>",
+  "descrizione": "<<Testo libero, oppure null>>",
+  "durata_settimane": 8,
+  "giorni": [
+    {
+      "titolo": "<<Titolo giorno 1>>",
+      "note": null,
+      "esercizi": [
+        {
+          "nome": "<<Nome esercizio>>",
+          "gruppo_muscolare": "<<Petto, Dorso, Spalle, Braccia, Quadricipiti, Femorali, Glutei, Polpacci, Core, Cardio>>",
+          "serie": "<<es. 3>>",
+          "ripetizioni": "<<es. 8-10>>",
+          "rir": "<<es. 2, oppure null>>",
+          "recupero_sec": 90,
+          "note": null
+        }
+      ]
+    }
+  ]
+}

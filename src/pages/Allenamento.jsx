@@ -7,6 +7,7 @@ import {
 } from '../components/ui'
 import { useToast, useConfirm } from '../components/Feedback'
 import IntestazioneFoto, { SfondoFoto } from '../components/IntestazioneFoto'
+import { importaScheda } from '../lib/importaScheda'
 import fotoScheda from '../assets/bg/scheda.jpg'
 
 const oggi = () => new Date().toISOString().slice(0, 10)
@@ -111,6 +112,7 @@ export default function Allenamento() {
   const [editItem, setEditItem] = useState(null)
   const [editDay, setEditDay] = useState(null)
   const [editPlan, setEditPlan] = useState(null)
+  const [importaAperto, setImportaAperto] = useState(false)
   const [infoAperto, setInfoAperto] = useState(false)
   const [checkinOggi, setCheckinOggi] = useState(null)     // null finché non caricato, {} se non ancora fatto
   const [checkinAperto, setCheckinAperto] = useState(false)
@@ -193,10 +195,16 @@ export default function Allenamento() {
         <Empty
           title="Nessuna scheda attiva"
           hint={canEdit ? 'Crea la scheda per questo atleta.' : 'Il tuo coach non ha ancora caricato la scheda.'}
-          action={canEdit && <button onClick={() => setEditPlan({})} className="btn-primary">Crea scheda</button>}
+          action={canEdit && (
+            <div className="flex flex-col gap-2">
+              <button onClick={() => setEditPlan({})} className="btn-primary">Crea scheda</button>
+              <button onClick={() => setImportaAperto(true)} className="btn-ghost">Importa da JSON</button>
+            </div>
+          )}
           icon={IconDumbbell}
         >
           <ModalPiano plan={editPlan} onClose={() => setEditPlan(null)} userId={targetId} onDone={load} />
+          <ModalImportaScheda open={importaAperto} userId={targetId} onClose={() => setImportaAperto(false)} onDone={load} />
         </Empty>
       </>
     )
@@ -297,12 +305,20 @@ export default function Allenamento() {
           </button>
         )}
 
-        {plan.description && (
-          <button onClick={() => setInfoAperto(true)}
-                  className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[13px] font-medium text-brand shadow-sm">
-            <IconInfo width={15} height={15} /> Come leggere la scheda
-          </button>
-        )}
+        <div className="mb-4 flex flex-wrap gap-2">
+          {plan.description && (
+            <button onClick={() => setInfoAperto(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[13px] font-medium text-brand shadow-sm">
+              <IconInfo width={15} height={15} /> Come leggere la scheda
+            </button>
+          )}
+          {canEdit && (
+            <button onClick={() => setImportaAperto(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[13px] font-medium text-muted shadow-sm">
+              Sostituisci con un'importazione (JSON)
+            </button>
+          )}
+        </div>
 
         {/* selettore giorni */}
         <div className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1">
@@ -373,6 +389,7 @@ export default function Allenamento() {
         <p className="whitespace-pre-line text-sm leading-relaxed text-muted">{plan.description}</p>
       </Modal>
       <ModalPiano plan={editPlan} userId={targetId} onClose={() => setEditPlan(null)} onDone={load} />
+      <ModalImportaScheda open={importaAperto} userId={targetId} onClose={() => setImportaAperto(false)} onDone={load} />
       <BarraRecupero timer={timer} />
       <ModalCheckin
         open={checkinAperto}
@@ -1040,6 +1057,72 @@ function ModalCheckin({ open, esistente, userId, onClose, onSalvato }) {
                     placeholder="Come ti senti oggi? Qualcosa da segnalare al coach?" />
         </label>
         <button className="btn-primary w-full" disabled={busy}>{busy ? 'Salvo…' : 'Salva check-in'}</button>
+      </form>
+    </Modal>
+  )
+}
+
+/*
+  Incolla un JSON (vedi templates/scheda_allenamento_import.json) e crea la
+  scheda intera con le query normali dell'app — nessun passaggio da Supabase.
+  Sostituisce quella attiva se ce n'è già una, esattamente come creandone una
+  a mano: quella vecchia resta nel database ma non più attiva.
+*/
+function ModalImportaScheda({ open, userId, onClose, onDone }) {
+  const [testo, setTesto] = useState('')
+  const [busy, setBusy] = useState(false)
+  const toast = useToast()
+  const chiedi = useConfirm()
+
+  useEffect(() => { if (open) setTesto('') }, [open])
+
+  async function importa(e) {
+    e.preventDefault()
+    let dati
+    try {
+      dati = JSON.parse(testo)
+    } catch {
+      return toast.err('Il testo incollato non è un JSON valido: controlla parentesi e virgole.')
+    }
+
+    const ok = await chiedi({
+      title: 'Sostituisco la scheda attiva?',
+      body: 'Quella attuale (se c\'è) smette di essere attiva, ma resta nel database: non viene cancellata.',
+      conferma: 'Importa',
+    })
+    if (!ok) return
+
+    setBusy(true)
+    try {
+      const { giorni, esercizi, nuoviEsercizi } = await importaScheda(userId, dati)
+      toast.ok(
+        `Scheda importata: ${giorni} giorni, ${esercizi} esercizi` +
+        (nuoviEsercizi ? ` (${nuoviEsercizi} nuovi in libreria)` : '')
+      )
+      onClose(); onDone()
+    } catch (err) {
+      toast.err(err)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Importa scheda da JSON">
+      <form onSubmit={importa} className="space-y-4">
+        <p className="text-sm text-muted">
+          Incolla qui il JSON generato a partire da <code>templates/scheda_allenamento_import.json</code>
+          (dallo stesso PDF/testo che daresti a un'IA con quel template). Gli esercizi si abbinano
+          alla libreria per nome: quelli nuovi vengono creati al volo.
+        </p>
+        <textarea
+          className="field min-h-[220px] font-mono text-[13px]"
+          value={testo}
+          onChange={(e) => setTesto(e.target.value)}
+          placeholder='{"titolo": "...", "giorni": [...] }'
+          required
+        />
+        <button className="btn-primary w-full" disabled={busy}>{busy ? 'Importo…' : 'Importa'}</button>
       </form>
     </Modal>
   )
