@@ -46,6 +46,7 @@ export default function Profilo() {
     const payload = {
       full_name: form.full_name, birth_date: form.birth_date || null, sex: form.sex || null,
       height_cm: form.height_cm || null, phone: form.phone, goal: form.goal,
+      goal_direction: form.goal_direction || null,
     }
     if (isGod) payload.notes = form.notes
     const { error } = await supabase.from('profiles').update(payload).eq('id', targetId)
@@ -97,6 +98,20 @@ export default function Profilo() {
             <span className="label">Obiettivo</span>
             <textarea className="field min-h-[84px]" value={form.goal || ''} onChange={set('goal')}
                       placeholder="Es. costruire glutei e catena posteriore, gambe meno pesanti la sera" />
+          </label>
+
+          <label className="block">
+            <span className="label">Direzione dell'obiettivo</span>
+            <select className="field" value={form.goal_direction || ''} onChange={set('goal_direction')}>
+              <option value="">— (non impostata)</option>
+              <option value="dimagrimento">Dimagrimento / definizione</option>
+              <option value="massa">Aumento massa</option>
+            </select>
+            <span className="mt-1 block text-xs text-muted">
+              Decide se una circonferenza in aumento (es. coscia, gluteo) viene mostrata in Misure e
+              Progressi come un progresso o come un allontanamento dall'obiettivo. La vita resta
+              sempre "meglio se scende", qualunque direzione tu scelga qui.
+            </span>
           </label>
 
           {isGod && (

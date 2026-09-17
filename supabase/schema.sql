@@ -13,7 +13,8 @@ create table if not exists public.profiles (
   sex          text check (sex in ('F','M','altro')),
   height_cm    numeric,
   phone        text,
-  goal         text,          -- obiettivo dichiarato
+  goal         text,          -- obiettivo dichiarato, testo libero
+  goal_direction text check (goal_direction in ('dimagrimento','massa')),  -- guida il colore in Misure/Progressi
   notes        text,          -- note del coach, non modificabili dall'atleta
   active       boolean not null default true,
   created_at   timestamptz not null default now()
@@ -252,6 +253,23 @@ create table if not exists public.goals (
 );
 create index if not exists goals_user_idx on public.goals(user_id, created_at desc);
 
+-- ---------- 9. DIARIO ALIMENTARE ----------
+-- Spunta "l'ho mangiato oggi" su un pasto del piano. Un pasto (diet_meals) è un
+-- modello che si ripete ogni settimana (es. "Colazione" del lunedì): la spunta
+-- si riferisce sempre alla data di OGGI, non al giorno del piano che si sta
+-- guardando in quel momento — stesso principio di come ModalLog in Allenamento
+-- registra sempre sulla data di oggi qualunque giorno della scheda si stia
+-- guardando.
+create table if not exists public.meal_checks (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  meal_id    uuid not null references public.diet_meals(id) on delete cascade,
+  date       date not null default current_date,
+  created_at timestamptz not null default now(),
+  unique (user_id, meal_id, date)
+);
+create index if not exists meal_checks_idx on public.meal_checks(user_id, date desc);
+
 -- ============================================================
 --  ROW LEVEL SECURITY
 -- ============================================================
@@ -260,6 +278,7 @@ alter table public.measurements  enable row level security;
 alter table public.measurement_photos enable row level security;
 alter table public.checkins      enable row level security;
 alter table public.appointments  enable row level security;
+alter table public.meal_checks   enable row level security;
 alter table public.exercises     enable row level security;
 alter table public.workout_plans enable row level security;
 alter table public.workout_days  enable row level security;
@@ -300,6 +319,14 @@ create policy mp_all on public.measurement_photos for all
 -- CHECK-IN: come le misurazioni, ognuno scrive e legge il proprio, il god tutti
 drop policy if exists checkins_all on public.checkins;
 create policy checkins_all on public.checkins for all
+  using (user_id = auth.uid() or public.is_god())
+  with check (user_id = auth.uid() or public.is_god());
+
+-- DIARIO ALIMENTARE: come le misurazioni e i check-in — autoresoconto libero,
+-- non un dato che scrive il coach, quindi anche l'atleta semplice (non solo il
+-- semi-god) lo scrive per sé.
+drop policy if exists meal_checks_all on public.meal_checks;
+create policy meal_checks_all on public.meal_checks for all
   using (user_id = auth.uid() or public.is_god())
   with check (user_id = auth.uid() or public.is_god());
 

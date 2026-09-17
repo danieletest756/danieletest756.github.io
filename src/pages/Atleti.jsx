@@ -16,6 +16,7 @@ export default function Atleti() {
   const [rows, setRows] = useState(null)
   const [q, setQ] = useState('')
   const [copia, setCopia] = useState(false)
+  const [nuovoAtleta, setNuovoAtleta] = useState(false)
   const [esportando, setEsportando] = useState(null)   // null | { fatte, totali }
   const [segnali, setSegnali] = useState({})   // { atleta_id: ['testo avviso', ...] }
   const [appuntamenti, setAppuntamenti] = useState([])
@@ -153,6 +154,9 @@ export default function Atleti() {
         )}
 
         <div className="mt-4 flex flex-col gap-2">
+          <button onClick={() => setNuovoAtleta(true)} className="btn-ghost w-full">
+            <IconPlus width={16} height={16} /> Crea account atleta
+          </button>
           <button onClick={() => setCopia(true)} className="btn-ghost w-full">
             Copia una scheda su un altro atleta
           </button>
@@ -209,6 +213,7 @@ export default function Atleti() {
       </Section>
 
       <ModalCopia open={copia} onClose={() => setCopia(false)} atleti={atleti} />
+      <ModalNuovoAtleta open={nuovoAtleta} onClose={() => setNuovoAtleta(false)} onCreato={load} />
       <ModalAppuntamento
         open={!!nuovoApp}
         atleti={atleti}
@@ -430,6 +435,52 @@ function ModalAppuntamento({ open, atleti, onClose, onSalvato }) {
                     onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         </label>
         <button className="btn-primary w-full" disabled={busy}>{busy ? 'Salvo…' : 'Aggiungi appuntamento'}</button>
+      </form>
+    </Modal>
+  )
+}
+
+/*
+  Crea l'account dell'atleta invece di aspettare che si registri da solo: chiama
+  la Edge Function create-athlete (supabase/functions/create-athlete), che usa
+  la chiave service_role — mai esposta qui nel frontend — per creare l'utente e
+  mandargli subito l'invito via email per impostare la password. Va distribuita
+  a parte con la Supabase CLI (vedi il commento in cima al file della funzione):
+  se non è ancora stata distribuita, questa chiamata fallisce con un errore
+  chiaro invece di un fallimento silenzioso.
+*/
+function ModalNuovoAtleta({ open, onClose, onCreato }) {
+  const [form, setForm] = useState({ email: '', full_name: '' })
+  const [busy, setBusy] = useState(false)
+  const toast = useToast()
+
+  useEffect(() => { if (open) setForm({ email: '', full_name: '' }) }, [open])
+
+  async function crea(e) {
+    e.preventDefault()
+    setBusy(true)
+    const { data, error } = await supabase.functions.invoke('create-athlete', {
+      body: { email: form.email.trim(), full_name: form.full_name.trim() },
+    })
+    setBusy(false)
+    if (error || data?.error) return toast.err(error ?? new Error(data.error))
+    toast.ok(`Invito inviato a ${form.email}`)
+    onClose()
+    onCreato()
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Crea account atleta">
+      <form onSubmit={crea} className="space-y-4">
+        <Field label="Nome e cognome" value={form.full_name}
+               onChange={(e) => setForm({ ...form, full_name: e.target.value })} placeholder="Erika Lanzafame" />
+        <Field label="Email" type="email" value={form.email} required
+               onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="atleta@esempio.it" />
+        <p className="text-sm text-muted">
+          Riceve una mail per impostare la propria password. Da lì in poi compare in questa lista
+          come un atleta normale.
+        </p>
+        <button className="btn-primary w-full" disabled={busy}>{busy ? 'Invio…' : 'Crea e invita'}</button>
       </form>
     </Modal>
   )

@@ -85,12 +85,40 @@ clienti paganti, vale la spesa.
 
 ## 6. Aggiungere gli atleti
 
-Non puoi creare gli account al posto loro senza un backend (servirebbe la chiave `service_role`,
-che non può stare nel frontend). Il flusso è questo:
+Due modi:
 
-1. Mandi il link dell'app all'atleta.
-2. Lui si registra con email o Google.
-3. Compare nella tua lista **Atleti**: lo apri, compili il profilo, crei scheda e dieta.
+**A. Si registra da solo** — mandi il link dell'app, l'atleta si registra con email o Google,
+compare nella tua lista **Atleti**: lo apri, compili il profilo, crei scheda e dieta. Non richiede
+nessuna configurazione in più.
+
+**B. Lo crei tu dal pannello** — pulsante "Crea account atleta" in Atleti: gli mandi subito
+l'invito via email per impostare la password, senza che debba registrarsi da solo. Richiede di
+aver distribuito la Edge Function `create-athlete` (punto 7 qui sotto): finché non l'hai fatto,
+il pulsante c'è ma dà errore al primo utilizzo — usa la via A nel frattempo.
+
+## 7. Creare account atleta dal pannello (opzionale)
+
+Il coach non ha mai la chiave `service_role` nel browser (per sicurezza): per creare un account
+al posto dell'atleta serve una funzione che gira *sul server* di Supabase, dove quella chiave è
+al sicuro. È già scritta in `supabase/functions/create-athlete/`, ma va distribuita con la
+Supabase CLI — non basta incollarla nel SQL Editor come per le altre migrazioni.
+
+1. Installa la CLI: `npm install -g supabase` (o vedi [supabase.com/docs/guides/cli](https://supabase.com/docs/guides/cli)).
+2. Accedi e collega il progetto:
+   ```bash
+   supabase login
+   supabase link --project-ref <il-tuo-project-ref>
+   ```
+   (`<il-tuo-project-ref>` è nell'URL del progetto: `https://supabase.com/dashboard/project/<qui>`).
+3. Distribuisci la funzione:
+   ```bash
+   supabase functions deploy create-athlete
+   ```
+4. Fatto. Le variabili `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` le mette
+   Supabase da sola nell'ambiente della funzione: non c'è nessun segreto da configurare a mano.
+
+Se in futuro modifichi `supabase/functions/create-athlete/index.ts`, ripeti solo il punto 3 per
+aggiornarla.
 
 Quando sei dentro un atleta, l'intestazione te lo ricorda e tutte le sezioni mostrano i **suoi**
 dati. Il pulsante *Esci* ti riporta alla lista.
@@ -148,6 +176,6 @@ di archiviazione: se ne occupa un trigger sul database.
 
 ## Prossimi passi possibili
 
-- Schermata "oggi" con il giorno di allenamento suggerito in base al calendario.
-- Diario alimentare giornaliero con spunta dei pasti consumati.
-- Notifica al coach quando un atleta registra una seduta.
+- Notifiche push/email (es. quando un atleta registra una seduta, o quando scatta un avviso).
+- Sincronizzazione vera con Google Calendar (oggi c'è l'export `.ics`, zero configurazione:
+  vedi la nota su questo in CLAUDE.md se vuoi valutare il passo successivo).

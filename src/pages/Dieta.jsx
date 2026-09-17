@@ -3,14 +3,16 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import {
   Section, Empty, Modal, Field, Spinner,
-  IconPlus, IconEdit, IconTrash, IconPlate, IconInfo,
+  IconPlus, IconEdit, IconTrash, IconPlate, IconInfo, IconChevron, IconCheck,
 } from '../components/ui'
 import { useToast, useConfirm } from '../components/Feedback'
 import IntestazioneFoto, { SfondoFoto } from '../components/IntestazioneFoto'
 import fotoDieta from '../assets/bg/dieta.jpg'
 
+const oggi = () => new Date().toISOString().slice(0, 10)
+
 export default function Dieta() {
-  const { targetId, canEdit } = useAuth()
+  const { targetId, canEdit, viewing } = useAuth()
   const [plan, setPlan] = useState(undefined)
   const [days, setDays] = useState([])
   const [meals, setMeals] = useState({})       // { day_id: [pasto, ...] }
@@ -21,6 +23,35 @@ export default function Dieta() {
   const [editFood, setEditFood] = useState(null)
   const [editMeal, setEditMeal] = useState(null)
   const [infoAperto, setInfoAperto] = useState(false)
+  const [consumatiOggi, setConsumatiOggi] = useState(new Set())   // meal_id già segnati oggi
+  const toast = useToast()
+
+  // Il diario è un autoresoconto come il check-in: ha senso solo quando chi
+  // guarda la pagina è l'atleta stesso, non il coach che guarda quella di un altro.
+  const mostraDiario = !viewing
+
+  const caricaConsumati = useCallback(async () => {
+    if (!targetId || !mostraDiario) return
+    const { data } = await supabase.from('meal_checks').select('meal_id')
+      .eq('user_id', targetId).eq('date', oggi())
+    setConsumatiOggi(new Set((data ?? []).map((r) => r.meal_id)))
+  }, [targetId, mostraDiario])
+
+  useEffect(() => { caricaConsumati() }, [caricaConsumati])
+
+  async function segnaConsumato(mealId) {
+    const fatto = consumatiOggi.has(mealId)
+    // Ottimistico: l'interfaccia risponde subito, poi si allinea col database.
+    setConsumatiOggi((prev) => {
+      const next = new Set(prev)
+      fatto ? next.delete(mealId) : next.add(mealId)
+      return next
+    })
+    const { error } = fatto
+      ? await supabase.from('meal_checks').delete().eq('user_id', targetId).eq('meal_id', mealId).eq('date', oggi())
+      : await supabase.from('meal_checks').insert({ user_id: targetId, meal_id: mealId, date: oggi() })
+    if (error) { toast.err(error); caricaConsumati() }
+  }
 
   const load = useCallback(async () => {
     if (!targetId) return
@@ -53,6 +84,18 @@ export default function Dieta() {
 
   const giorno = days[tab]
   const pastiGiorno = giorno ? meals[giorno.id] ?? [] : []
+
+  async function spostaGiorno(id, direzione) {
+    const idx = days.findIndex((d) => d.id === id)
+    const altro = days[idx + direzione]
+    if (!altro) return
+    const corrente = days[idx]
+    await Promise.all([
+      supabase.from('diet_days').update({ position: altro.position }).eq('id', corrente.id),
+      supabase.from('diet_days').update({ position: corrente.position }).eq('id', altro.id),
+    ])
+    load()
+  }
 
   const totali = useMemo(() => {
     const t = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
@@ -162,14 +205,29 @@ export default function Dieta() {
             {pastiGiorno.map((m) => {
               const lista = foods[m.id] ?? []
               const k = lista.reduce((s, f) => s + Number(f.kcal || 0), 0)
+              const fatto = consumatiOggi.has(m.id)
               return (
-                <div key={m.id} className="card overflow-hidden">
-                  <div className="flex items-center justify-between border-b border-line px-4 py-3">
-                    <div>
+                <div key={m.id} className={`card overflow-hidden ${fatto ? 'ring-2 ring-good/40' : ''}`}>
+                  <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
+                    <div className="min-w-0">
                       <p className="font-cond text-[21px] font-semibold leading-none">{m.name}</p>
                       {m.time_label && <p className="mt-1 text-[12.5px] text-muted">{m.time_label}</p>}
                     </div>
-                    <span className="stat text-[19px] text-muted">{Math.round(k)} kcal</span>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span className="stat text-[19px] text-muted">{Math.round(k)} kcal</span>
+                      {mostraDiario && (
+                        <button
+                          onClick={() => segnaConsumato(m.id)}
+                          className={`grid h-8 w-8 place-items-center rounded-full border-2 transition-colors ${
+                            fatto ? 'border-good bg-good text-white' : 'border-line text-transparent'
+                          }`}
+                          aria-label={fatto ? 'Segnato come consumato: tocca per togliere la spunta' : 'Segna come consumato oggi'}
+                          title={fatto ? 'Consumato oggi' : 'Segna come consumato oggi'}
+                        >
+                          <IconCheck width={16} height={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <ul className="divide-y divide-line">
@@ -227,6 +285,8 @@ export default function Dieta() {
       <ModalPiano plan={editPlan} userId={targetId} onClose={() => setEditPlan(null)} onDone={load} />
       <ModalGiorno
         day={editDay}
+        giorni={days}
+        onSposta={spostaGiorno}
         onClose={() => setEditDay(null)}
         onDone={(eliminato) => { if (eliminato) setTab(0); load() }}
       />
@@ -240,7 +300,7 @@ export default function Dieta() {
 }
 
 /* ---------------- giorno della dieta (solo coach) ---------------- */
-function ModalGiorno({ day, onClose, onDone }) {
+function ModalGiorno({ day, giorni = [], onSposta, onClose, onDone }) {
   const [f, setF] = useState({ title: '', notes: '' })
   const [busy, setBusy] = useState(false)
   const toast = useToast()
@@ -252,6 +312,7 @@ function ModalGiorno({ day, onClose, onDone }) {
 
   if (!day) return null
   const nuovo = !day.id
+  const idx = giorni.findIndex((d) => d.id === day.id)
 
   async function salva(e) {
     e.preventDefault()
@@ -296,6 +357,18 @@ function ModalGiorno({ day, onClose, onDone }) {
                     onChange={(e) => setF({ ...f, notes: e.target.value })}
                     placeholder="Note utili per questo giorno." />
         </label>
+        {!nuovo && giorni.length > 1 && (
+          <div className="flex gap-3">
+            <button type="button" onClick={() => onSposta(day.id, -1)} disabled={idx <= 0}
+                    className="btn-ghost flex-1 text-sm disabled:opacity-40">
+              <IconChevron width={16} height={16} className="-rotate-90" /> Sposta su
+            </button>
+            <button type="button" onClick={() => onSposta(day.id, 1)} disabled={idx === giorni.length - 1}
+                    className="btn-ghost flex-1 text-sm disabled:opacity-40">
+              <IconChevron width={16} height={16} className="rotate-90" /> Sposta giù
+            </button>
+          </div>
+        )}
         <div className="flex gap-3 pt-1">
           <button className="btn-primary flex-1" disabled={busy}>{busy ? 'Salvo…' : 'Salva'}</button>
           {!nuovo && (

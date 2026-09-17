@@ -4,6 +4,7 @@ import { useAuth } from '../lib/AuthContext'
 import { Section, Empty, Modal, Field, Spinner, IconChart, IconAward, IconTarget, IconPlus, IconEdit, IconTrash } from '../components/ui'
 import { useToast, useConfirm } from '../components/Feedback'
 import { urlFirmati } from '../lib/foto'
+import { sensoBuono } from '../lib/obiettivoCorpo'
 import GraficoAndamento from '../components/GraficoAndamento'
 import IntestazioneFoto from '../components/IntestazioneFoto'
 import fotoProgressi from '../assets/bg/progressi.jpg'
@@ -50,7 +51,7 @@ const CAMPI_CHECKIN = [
 ]
 
 export default function Progressi() {
-  const { targetId, canEdit } = useAuth()
+  const { targetId, target, canEdit } = useAuth()
   const [stato, setStato] = useState('carico')   // carico | pronto
   const [misure, setMisure] = useState([])
   const [pesoSerie, setPesoSerie] = useState([])
@@ -63,6 +64,8 @@ export default function Progressi() {
   const [recordPersonali, setRecordPersonali] = useState([])
   const [recordPorId, setRecordPorId] = useState({})   // { exercise_id: pesoMax }
   const [sedute30, setSedute30] = useState(0)
+  const [aderenza, setAderenza] = useState(null)
+  const [sedutePreviste, setSedutePreviste] = useState(null)
   const [primaFoto, setPrimaFoto] = useState(null)
   const [ultimaFoto, setUltimaFoto] = useState(null)
   const [urls, setUrls] = useState({})
@@ -169,7 +172,30 @@ export default function Progressi() {
 
       const soglia = new Date()
       soglia.setDate(soglia.getDate() - 30)
-      setSedute30(new Set((log ?? []).filter((l) => new Date(l.date) >= soglia).map((l) => l.date)).size)
+      const sedute30Count = new Set((log ?? []).filter((l) => new Date(l.date) >= soglia).map((l) => l.date)).size
+      setSedute30(sedute30Count)
+
+      // Aderenza: sedute fatte negli ultimi 30 giorni rispetto a quelle attese,
+      // stimate da quanti giorni ha la scheda attiva (si presume un giro a
+      // settimana, come nella stragrande maggioranza dei programmi). Non dice
+      // "quale giorno tocca oggi" (l'atleta può saltare e recuperare quando
+      // vuole): solo quanto, nel complesso, si sta rispettando il programma.
+      const { data: planAttivo } = await supabase.from('workout_plans').select('id')
+        .eq('user_id', targetId).eq('is_active', true)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      let aderenzaVal = null
+      let sedutePrevisteVal = null
+      if (planAttivo) {
+        const { count } = await supabase.from('workout_days')
+          .select('id', { count: 'exact', head: true }).eq('plan_id', planAttivo.id)
+        if (count) {
+          sedutePrevisteVal = Math.round(count * (30 / 7))
+          aderenzaVal = Math.min(100, Math.round((sedute30Count / sedutePrevisteVal) * 100))
+        }
+      }
+      if (annullato) return
+      setAderenza(aderenzaVal)
+      setSedutePreviste(sedutePrevisteVal)
 
       // Foto: la più vecchia e la più recente fra le misurazioni che ne hanno almeno una
       const idsConData = new Map(misureOrdinate.map((m) => [m.id, m.date]))
@@ -314,8 +340,14 @@ export default function Progressi() {
 
             <div className="card grid grid-cols-3 gap-3 p-5">
               <div>
-                <p className="text-[12px] text-muted">Sedute (30gg)</p>
-                <p className="stat text-[26px]">{sedute30}</p>
+                <p className="text-[12px] text-muted">{aderenza != null ? 'Aderenza (30gg)' : 'Sedute (30gg)'}</p>
+                <p className="stat text-[26px]">
+                  {aderenza != null ? aderenza : sedute30}
+                  <span className="ml-0.5 text-[13px] font-medium text-muted">{aderenza != null ? '%' : ''}</span>
+                </p>
+                {sedutePreviste != null && (
+                  <p className="text-[11px] font-medium text-muted">{sedute30} di {sedutePreviste} previste</p>
+                )}
               </div>
               <div>
                 <p className="text-[12px] text-muted">Peso</p>
@@ -324,7 +356,9 @@ export default function Progressi() {
                   <span className="ml-0.5 text-[13px] font-medium text-muted">{pesoAttuale != null ? 'kg' : ''}</span>
                 </p>
                 {deltaPeso != null && deltaPeso !== 0 && (
-                  <p className={`text-[11px] font-medium ${deltaPeso < 0 ? 'text-good' : 'text-muted'}`}>
+                  <p className={`text-[11px] font-medium ${
+                    sensoBuono('weight_kg', deltaPeso, target?.goal_direction) ? 'text-good' : 'text-bad'
+                  }`}>
                     {deltaPeso > 0 ? '+' : ''}{deltaPeso} dall'inizio
                   </p>
                 )}

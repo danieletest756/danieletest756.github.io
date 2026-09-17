@@ -33,6 +33,7 @@ src/
   lib/immagini.js         compressione su canvas prima del caricamento
   lib/riepilogoMisura.js  immagine PNG riassuntiva di una misurazione (canvas nativo)
   lib/ics.js              file .ics per aggiungere un appuntamento al calendario del telefono
+  lib/obiettivoCorpo.js   decide se una variazione di misura è un progresso, in base all'obiettivo
   components/Layout.jsx   intestazione + barra di navigazione inferiore
   components/ui.jsx       icone SVG inline, Modal, Field, Section, Empty, Spinner
   components/Feedback.jsx notifiche a scomparsa e finestre di conferma
@@ -41,9 +42,9 @@ src/
   components/GraficoAndamento.jsx grafico a linea condiviso (peso, carichi) — porta con sé recharts
   pages/Login.jsx
   pages/Allenamento.jsx   giorni, esercizi, video, carichi, check-in, settimana attuale, editor coach
-  pages/Dieta.jsx         macro obiettivo, giorni, pasti, alimenti
+  pages/Dieta.jsx         macro obiettivo, giorni, pasti, alimenti, diario dei pasti consumati
   pages/Misure.jsx        storico, differenze, grafico peso, foto
-  pages/Progressi.jsx     obiettivi, stat, grafici (peso, altre misure, check-in, carichi), record, foto
+  pages/Progressi.jsx     obiettivi, aderenza, stat, grafici (peso, misure, check-in, carichi), record, foto
   pages/Profilo.jsx       dati personali + note private del coach
   pages/Segnalazioni.jsx  bug/migliorie segnalati da chi usa l'app     (tab "Feedback")
   pages/Atleti.jsx        elenco atleti, ruoli, copia scheda, avvisi, agenda   (solo coach)
@@ -58,7 +59,10 @@ supabase/
   migration_goals.sql             da eseguire sui progetti creati prima degli Obiettivi
   migration_checkins.sql          da eseguire sui progetti creati prima del check-in giornaliero
   migration_appuntamenti.sql      da eseguire sui progetti creati prima dell'Agenda
+  migration_goal_direction.sql    da eseguire sui progetti creati prima della direzione obiettivo
+  migration_diario_alimentare.sql da eseguire sui progetti creati prima del diario alimentare
   seed_esercizi.sql       25 esercizi di partenza
+  functions/create-athlete/       Edge Function, va distribuita con la CLI (non con l'SQL Editor)
 templates/
   scheda_allenamento_template.sql  da far compilare a un'IA insieme al PDF di un atleta
   scheda_dieta_template.sql        idem, per il piano alimentare
@@ -173,7 +177,10 @@ creato prima del ruolo semi-god, esegui anche `supabase/migration_semi_god.sql`.
 creato prima della sezione Feedback, esegui anche `supabase/migration_feedback.sql`. Se era stato
 creato prima degli Obiettivi in Progressi, esegui anche `supabase/migration_goals.sql`. Se era
 stato creato prima del check-in giornaliero, esegui anche `supabase/migration_checkins.sql`. Se
-era stato creato prima dell'Agenda, esegui anche `supabase/migration_appuntamenti.sql`.**
+era stato creato prima dell'Agenda, esegui anche `supabase/migration_appuntamenti.sql`. Se era
+stato creato prima della direzione dell'obiettivo, esegui anche
+`supabase/migration_goal_direction.sql`. Se era stato creato prima del diario alimentare, esegui
+anche `supabase/migration_diario_alimentare.sql`.**
 
 **L'app è installabile (PWA)**: `public/manifest.webmanifest`, `public/sw.js` (service worker
 minimo, scritto a mano, nessuna dipendenza) e le icone in `public/icons/` (generate da
@@ -253,13 +260,17 @@ Coscia, Metà gluteo, Polpaccio) — se cambi l'ordine o i campi lì, aggiorna a
 
 ## Lavori aperti, in ordine di utilità
 
-1. **Progressione settimanale**: la scheda originale prevede 8 settimane con RIR decrescente
-   (sett. 1-2 RIR 3, 3-4 RIR 2, 5-6 RIR 1-2, 7 RIR 1, 8 scarico). Oggi non ha un posto nell'app.
-   Idea: campo `current_week` su `workout_plans` e una fascia in cima alla scheda che dice a che
-   punto è l'atleta e a che intensità deve tirare questa settimana.
-2. **Schermata "oggi"**: quale giorno tocca, in base all'ultima seduta registrata.
-3. **Diario alimentare**: spunta dei pasti consumati giorno per giorno.
-4. **Edge Function** per creare gli account atleta dal pannello coach.
+1. **Notifiche push/email** — es. quando un atleta registra una seduta, o quando scatta un
+   avviso in Atleti. Fattibile a costo zero (service worker già presente per il push del
+   browser; per le email serve un servizio con piano gratuito tipo Resend), ma è un pezzo a sé.
+2. **Sincronizzazione vera con Google Calendar**: oggi l'Agenda usa l'export `.ics` (zero
+   configurazione, funziona con qualunque calendario). Un collegamento automatico vero
+   richiederebbe che il coach configuri un progetto Google Cloud con l'API Calendar e la
+   gestione lato server del rinnovo del token — non un ritocco di un pomeriggio.
+
+**Schermata "oggi"** (quale giorno tocca, in base all'ultima seduta registrata) è stata
+scartata di proposito: un atleta che salta un giorno riceverebbe un suggerimento sbagliato.
+Al suo posto c'è l'**aderenza al piano** (vedi sotto), che non prescrive nulla.
 
 Fatto: **la seduta in palestra** ha un timer di recupero (`useTimerRecupero` in Allenamento.jsx)
 che parte **solo** al tocco del pulsante "Recupero Ns" — mai da solo dopo aver salvato un
@@ -343,12 +354,45 @@ chiunque può segnalare un bug, una miglioria o un'idea con una nota libera; il 
 god vede solo le proprie. Non c'è una pagina "vuota" con foto di sfondo: è una pagina utility come
 Atleti/Esercizi, non una pagina personale/motivazionale.
 
-Difetti noti, piccoli ma reali:
+Fatto: **colore in base all'obiettivo, non al segno** (`lib/obiettivoCorpo.js`, funzione
+`sensoBuono(campo, delta, direzione)`, usata da Misure.jsx e Progressi.jsx) — prima ogni calo era
+verde a prescindere, anche quello di coscia e gluteo, il contrario di un progresso per chi sta
+costruendo massa. Ora `profiles.goal_direction` ('dimagrimento' | 'massa' | non impostata, si
+sceglie in Profilo) decide la direzione "buona" per ogni misura, **tranne la vita**, che conta
+sempre come "meglio se scende" qualunque sia l'obiettivo — nessuno la vuole più larga. Se non è
+impostata nessuna direzione, si comporta come prima (scende = verde), per non rompere nulla a chi
+non la tocca.
 
-- In Misure ogni calo è colorato di verde, anche quello di coscia e gluteo: per chi sta
-  costruendo massa è il contrario di un progresso. Il colore andrebbe deciso in base
-  all'obiettivo dell'atleta, non al segno della differenza.
-- I giorni della scheda si riordinano solo cambiando `position` a mano nel database.
+Fatto: **riordino dei giorni** (scheda e dieta) — prima si riordinavano solo cambiando `position`
+a mano nel database. Ora "Modifica il giorno" (`ModalGiorno`, sia in Allenamento.jsx sia in
+Dieta.jsx) ha due pulsanti "Sposta su"/"Sposta giù" che scambiano la `position` con il giorno
+adiacente e ricaricano. Stessa funzione `spostaGiorno` duplicata identica nelle due pagine (non
+condivisa in un modulo comune): sono poche righe e le due tabelle (`workout_days`/`diet_days`)
+restano indipendenti, non sembrava valesse un'astrazione in più.
+
+Fatto: **aderenza al piano** (in Progressi, sostituisce la vecchia tile "Sedute (30gg)") — non
+dice quale giorno tocca (scartato, vedi sopra), dice quante sedute delle attese sono state fatte
+negli ultimi 30 giorni. "Attese" è una stima: giorni della scheda attiva (`workout_days.length`)
+per 30/7 settimane, assumendo un giro completo a settimana — non è scritto da nessuna parte nel
+piano, è dedotto. Se non c'è una scheda attiva, la tile torna al vecchio conteggio grezzo.
+
+Fatto: **diario alimentare** (tabella `meal_checks`) — un cerchio da toccare su ogni pasto in
+Dieta.jsx per segnarlo come consumato **oggi**, qualunque giorno del piano si stia guardando in
+quel momento (stesso principio di come `ModalLog` in Allenamento registra sempre sulla data di
+oggi indipendentemente dal giorno-scheda aperto: il piano è un modello che si ripete, la spunta è
+sulla giornata reale). Autoresoconto come i check-in: RLS aperta a chiunque scriva la propria riga
+(non solo `canEdit`), ma il pulsante compare solo quando `!viewing` — il coach che sta guardando
+la dieta di un atleta non deve poter segnare "l'ho mangiato" al posto suo.
+
+Fatto: **Edge Function per creare account atleta** (`supabase/functions/create-athlete/`) —
+pulsante "Crea account atleta" in Atleti, chiama `supabase.functions.invoke('create-athlete', ...)`.
+La funzione verifica lato server che chi chiama sia `god` (mai fidarsi del frontend, anche qui),
+poi usa `auth.admin.inviteUserByEmail` con la chiave `service_role` — che continua a non esistere
+da nessuna parte nel codice del frontend, vive solo nell'ambiente della funzione, iniettata da
+Supabase stessa. **Questa è l'unica parte del progetto che non basta "incollare in SQL Editor"**:
+va distribuita con la Supabase CLI (`supabase functions deploy create-athlete`), istruzioni
+complete nel `README.md`, punto 7. Finché non è distribuita, il pulsante c'è ma fallisce con un
+errore chiaro al primo utilizzo — non un fallimento silenzioso.
 
 ## Cose da non fare
 

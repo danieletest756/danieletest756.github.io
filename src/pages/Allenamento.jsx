@@ -220,6 +220,18 @@ export default function Allenamento() {
     load()
   }
 
+  async function spostaGiorno(id, direzione) {
+    const idx = days.findIndex((d) => d.id === id)
+    const altro = days[idx + direzione]
+    if (!altro) return
+    const corrente = days[idx]
+    await Promise.all([
+      supabase.from('workout_days').update({ position: altro.position }).eq('id', corrente.id),
+      supabase.from('workout_days').update({ position: corrente.position }).eq('id', altro.id),
+    ])
+    load()
+  }
+
   const infoSettimana = calcolaSettimana(plan, ultimaSeduta)
 
   return (
@@ -352,6 +364,8 @@ export default function Allenamento() {
       <ModalItem item={editItem} onClose={() => setEditItem(null)} onDone={load} />
       <ModalGiorno
         day={editDay}
+        giorni={days}
+        onSposta={spostaGiorno}
         onClose={() => setEditDay(null)}
         onDone={(eliminato) => { if (eliminato) setTab(0); load() }}
       />
@@ -396,7 +410,7 @@ function BarraRecupero({ timer }) {
 }
 
 /* ---------------- giorno di allenamento (solo coach) ---------------- */
-function ModalGiorno({ day, onClose, onDone }) {
+function ModalGiorno({ day, giorni = [], onSposta, onClose, onDone }) {
   const [f, setF] = useState({ title: '', notes: '' })
   const [busy, setBusy] = useState(false)
   const toast = useToast()
@@ -408,6 +422,7 @@ function ModalGiorno({ day, onClose, onDone }) {
 
   if (!day) return null
   const nuovo = !day.id
+  const idx = giorni.findIndex((d) => d.id === day.id)
 
   async function salva(e) {
     e.preventDefault()
@@ -452,6 +467,18 @@ function ModalGiorno({ day, onClose, onDone }) {
                     onChange={(e) => setF({ ...f, notes: e.target.value })}
                     placeholder="Note utili per svolgere la seduta." />
         </label>
+        {!nuovo && giorni.length > 1 && (
+          <div className="flex gap-3">
+            <button type="button" onClick={() => onSposta(day.id, -1)} disabled={idx <= 0}
+                    className="btn-ghost flex-1 text-sm disabled:opacity-40">
+              <IconChevron width={16} height={16} className="-rotate-90" /> Sposta su
+            </button>
+            <button type="button" onClick={() => onSposta(day.id, 1)} disabled={idx === giorni.length - 1}
+                    className="btn-ghost flex-1 text-sm disabled:opacity-40">
+              <IconChevron width={16} height={16} className="rotate-90" /> Sposta giù
+            </button>
+          </div>
+        )}
         <div className="flex gap-3 pt-1">
           <button className="btn-primary flex-1" disabled={busy}>{busy ? 'Salvo…' : 'Salva'}</button>
           {!nuovo && (

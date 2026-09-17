@@ -7,6 +7,7 @@ import { SceltaFoto, Galleria } from '../components/FotoMisura'
 import { caricaFoto, urlFirmati } from '../lib/foto'
 import { esportaFotoMisurazione } from '../lib/esportaFoto'
 import { generaImmagineMisurazione } from '../lib/riepilogoMisura'
+import { sensoBuono } from '../lib/obiettivoCorpo'
 import IntestazioneFoto from '../components/IntestazioneFoto'
 import GraficoAndamento from '../components/GraficoAndamento'
 import GuidaMisure from '../components/GuidaMisure'
@@ -209,6 +210,7 @@ export default function Misure() {
                 const now = ultima?.[k]
                 const then = prima?.[k]
                 const d = now != null && then != null && rows.length > 1 ? now - then : null
+                const buono = sensoBuono(k, d, target?.goal_direction)
                 return (
                   <div key={k}>
                     <p className="text-[13px] text-muted">{l}</p>
@@ -216,7 +218,7 @@ export default function Misure() {
                       {now ?? '—'}<span className="ml-0.5 text-[15px] font-medium text-muted">{now != null ? u : ''}</span>
                     </p>
                     {d != null && d !== 0 && (
-                      <p className={`text-[12px] font-medium ${d < 0 ? 'text-good' : 'text-muted'}`}>
+                      <p className={`text-[12px] font-medium ${buono ? 'text-good' : 'text-bad'}`}>
                         {d > 0 ? '+' : ''}{Math.round(d * 10) / 10} dall'inizio
                       </p>
                     )}
