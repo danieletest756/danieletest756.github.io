@@ -78,6 +78,25 @@ create table if not exists public.measurement_photos (
 create index if not exists measurement_photos_idx
   on public.measurement_photos(measurement_id, position);
 
+-- Check-in giornaliero dell'atleta: sonno, stress, energia, dolori muscolari, su
+-- una scala 1-5 dove ALTO è sempre meglio (5 = benissimo/rilassato/nessun dolore),
+-- così i confronti e gli avvisi non devono invertire il segno a seconda del campo.
+-- Niente "punteggio" calcolato: sono dati grezzi, le regole che li leggono (in
+-- Atleti.jsx) restano semplici e spiegabili, non una formula scientifica finta.
+create table if not exists public.checkins (
+  id             uuid primary key default gen_random_uuid(),
+  user_id        uuid not null references public.profiles(id) on delete cascade,
+  date           date not null default current_date,
+  sleep_score    int check (sleep_score between 1 and 5),
+  stress_score   int check (stress_score between 1 and 5),
+  energy_score   int check (energy_score between 1 and 5),
+  soreness_score int check (soreness_score between 1 and 5),
+  notes          text,
+  created_at     timestamptz not null default now(),
+  unique (user_id, date)
+);
+create index if not exists checkins_user_date_idx on public.checkins(user_id, date desc);
+
 -- ---------- 3. LIBRERIA ESERCIZI (condivisa) ----------
 create table if not exists public.exercises (
   id           uuid primary key default gen_random_uuid(),
@@ -197,7 +216,24 @@ create table if not exists public.app_feedback (
 );
 create index if not exists app_feedback_idx on public.app_feedback(created_at desc);
 
--- ---------- 7. OBIETTIVI ----------
+-- ---------- 7. AGENDA ----------
+-- Appuntamenti reali (sedute in presenza, videochiamate...), non le sedute della
+-- scheda: quelle restano in workout_logs. Ogni appuntamento si può aggiungere al
+-- calendario del telefono (Google/Apple/Outlook) con un file .ics generato al
+-- volo (lib/ics.js) — niente account Google da collegare, niente token da
+-- rinnovare, funziona con qualunque app di calendario.
+create table if not exists public.appointments (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references public.profiles(id) on delete cascade,  -- l'atleta
+  title        text not null default 'Sessione di allenamento',
+  starts_at    timestamptz not null,
+  duration_min int not null default 60,
+  notes        text,
+  created_at   timestamptz not null default now()
+);
+create index if not exists appointments_user_idx on public.appointments(user_id, starts_at);
+
+-- ---------- 8. OBIETTIVI ----------
 -- Un traguardo concreto su una misura del corpo o su un carico ("arrivare a 75 kg",
 -- "portare la panca a 80 kg"). start_value è lo scatto di partenza: si calcola la
 -- percentuale come (attuale - partenza) / (obiettivo - partenza), formula che
@@ -222,6 +258,8 @@ create index if not exists goals_user_idx on public.goals(user_id, created_at de
 alter table public.profiles      enable row level security;
 alter table public.measurements  enable row level security;
 alter table public.measurement_photos enable row level security;
+alter table public.checkins      enable row level security;
+alter table public.appointments  enable row level security;
 alter table public.exercises     enable row level security;
 alter table public.workout_plans enable row level security;
 alter table public.workout_days  enable row level security;
@@ -258,6 +296,22 @@ drop policy if exists mp_all on public.measurement_photos;
 create policy mp_all on public.measurement_photos for all
   using (user_id = auth.uid() or public.is_god())
   with check (user_id = auth.uid() or public.is_god());
+
+-- CHECK-IN: come le misurazioni, ognuno scrive e legge il proprio, il god tutti
+drop policy if exists checkins_all on public.checkins;
+create policy checkins_all on public.checkins for all
+  using (user_id = auth.uid() or public.is_god())
+  with check (user_id = auth.uid() or public.is_god());
+
+-- AGENDA: stesso schema di scheda/dieta/obiettivi — l'atleta legge i suoi
+-- appuntamenti, il god li gestisce tutti, il semi-god solo i propri.
+drop policy if exists appointments_select on public.appointments;
+create policy appointments_select on public.appointments for select
+  using (user_id = auth.uid() or public.is_god());
+drop policy if exists appointments_write on public.appointments;
+create policy appointments_write on public.appointments for all
+  using (public.is_god() or (public.is_semi_god() and user_id = auth.uid()))
+  with check (public.is_god() or (public.is_semi_god() and user_id = auth.uid()));
 
 -- ESERCIZI: tutti leggono, solo il god scrive
 drop policy if exists exercises_select on public.exercises;

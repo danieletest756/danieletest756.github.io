@@ -40,6 +40,15 @@ const ultimoValore = (misure, campo) => {
   return null
 }
 
+// Check-in giornaliero (sonno, stress, energia, dolori): scala 1-5, alto è sempre
+// meglio. Niente punteggio unico calcolato: solo i dati grezzi in un grafico.
+const CAMPI_CHECKIN = [
+  { k: 'sleep_score',    l: 'Sonno' },
+  { k: 'stress_score',   l: 'Stress' },
+  { k: 'energy_score',   l: 'Energia' },
+  { k: 'soreness_score', l: 'Dolori' },
+]
+
 export default function Progressi() {
   const { targetId, canEdit } = useAuth()
   const [stato, setStato] = useState('carico')   // carico | pronto
@@ -59,6 +68,8 @@ export default function Progressi() {
   const [urls, setUrls] = useState({})
   const [obiettivi, setObiettivi] = useState([])
   const [modaleObiettivo, setModaleObiettivo] = useState(null)   // null chiuso | {} nuovo | goal esistente
+  const [checkinSerie, setCheckinSerie] = useState({})   // { sleep_score: [{data, valore}], ... }
+  const [checkinScelto, setCheckinScelto] = useState('')
   const toast = useToast()
   const chiedi = useConfirm()
 
@@ -76,18 +87,30 @@ export default function Progressi() {
     async function carica() {
       setStato('carico')
 
-      const [{ data: misureData }, { data: log }, { data: goalsData }] = await Promise.all([
+      const [{ data: misureData }, { data: log }, { data: goalsData }, { data: checkinsData }] = await Promise.all([
         supabase.from('measurements').select('*').eq('user_id', targetId).order('date'),
         supabase.from('workout_logs')
           .select('date, weight_kg, item:workout_items(exercise_id, exercise:exercises(name))')
           .eq('user_id', targetId).not('weight_kg', 'is', null).order('date'),
         supabase.from('goals').select('*, esercizio:exercises(name)').eq('user_id', targetId).order('created_at'),
+        supabase.from('checkins').select('*').eq('user_id', targetId).order('date'),
       ])
       if (annullato) return
 
       const misureOrdinate = misureData ?? []
       setMisure(misureOrdinate)
       setObiettivi(goalsData ?? [])
+
+      const perCheckin = {}
+      CAMPI_CHECKIN.forEach(({ k }) => {
+        perCheckin[k] = (checkinsData ?? [])
+          .filter((c) => c[k] != null)
+          .map((c) => ({ data: formatoData(c.date), valore: Number(c[k]) }))
+      })
+      setCheckinSerie(perCheckin)
+      setCheckinScelto((prec) => (prec && (perCheckin[prec]?.length ?? 0) > 1 ? prec : (
+        CAMPI_CHECKIN.find((c) => (perCheckin[c.k]?.length ?? 0) > 1)?.k ?? ''
+      )))
 
       const pesiValidi = misureOrdinate.filter((r) => r.weight_kg != null)
       setPesoSerie(pesiValidi.map((r) => ({ data: formatoData(r.date), peso: Number(r.weight_kg) })))
@@ -109,18 +132,28 @@ export default function Progressi() {
         CAMPI_CORPO.find((c) => (perCampo[c.k]?.length ?? 0) > 1)?.k ?? ''
       )))
 
-      const perEsercizio = {}
+      // Un esercizio può avere più serie lo stesso giorno: per il grafico conta il
+      // "top set" (il più pesante) di quella data, non un punto per ogni serie —
+      // altrimenti la linea farebbe zig-zag fra le serie invece che fra le sedute.
+      const pesoMaxPerData = {}   // nome -> { data: pesoMax }
       const record = {}
       const recordId = {}
       ;(log ?? []).forEach((l) => {
         const nome = l.item?.exercise?.name
         const peso = Number(l.weight_kg)
         if (nome) {
-          ;(perEsercizio[nome] ||= []).push({ data: formatoData(l.date), peso })
+          const perData = (pesoMaxPerData[nome] ||= {})
+          if (perData[l.date] == null || peso > perData[l.date]) perData[l.date] = peso
           if (!record[nome] || peso >= record[nome].peso) record[nome] = { nome, peso, data: l.date }
         }
         const exId = l.item?.exercise_id
         if (exId && (recordId[exId] == null || peso > recordId[exId])) recordId[exId] = peso
+      })
+      const perEsercizio = {}
+      Object.entries(pesoMaxPerData).forEach(([nome, perData]) => {
+        perEsercizio[nome] = Object.entries(perData)
+          .sort(([d1], [d2]) => d1.localeCompare(d2))
+          .map(([data, peso]) => ({ data: formatoData(data), peso }))
       })
       setCarichi(perEsercizio)
       const nomi = Object.keys(perEsercizio)
@@ -173,6 +206,9 @@ export default function Progressi() {
   const serieMisuraCorpo = misureCorpo[misuraCorpoScelta] ?? []
   const campiCorpoConDati = CAMPI_CORPO.filter((c) => (misureCorpo[c.k]?.length ?? 0) > 1)
   const recordInEvidenza = recordPersonali[0]
+  const campoCheckinScelto = CAMPI_CHECKIN.find((c) => c.k === checkinScelto)
+  const serieCheckinScelta = checkinSerie[checkinScelto] ?? []
+  const campiCheckinConDati = CAMPI_CHECKIN.filter((c) => (checkinSerie[c.k]?.length ?? 0) > 1)
 
   function valoreAttualeObiettivo(g) {
     if (g.metric === 'exercise') return recordPorId[g.exercise_id] ?? null
@@ -190,7 +226,8 @@ export default function Progressi() {
 
   const vuoto =
     pesoSerie.length < 2 && nomiEsercizi.length === 0 && !primaFoto &&
-    recordPersonali.length === 0 && campiCorpoConDati.length === 0 && sedute30 === 0 && obiettivi.length === 0
+    recordPersonali.length === 0 && campiCorpoConDati.length === 0 && sedute30 === 0 &&
+    obiettivi.length === 0 && campiCheckinConDati.length === 0
 
   return (
     <>
@@ -304,6 +341,26 @@ export default function Progressi() {
                 ) : <p className="stat text-[26px] text-muted">—</p>}
               </div>
             </div>
+
+            {campiCheckinConDati.length > 0 && (
+              <div className="card p-5 pl-1">
+                <p className="mb-2 pl-4 text-[13px] text-muted">Check-in (sonno, stress, energia, dolori)</p>
+                <div className="px-4">
+                  <select
+                    className="field mb-3"
+                    value={checkinScelto}
+                    onChange={(e) => setCheckinScelto(e.target.value)}
+                  >
+                    {campiCheckinConDati.map((c) => <option key={c.k} value={c.k}>{c.l}</option>)}
+                  </select>
+                </div>
+                <GraficoAndamento
+                  dati={serieCheckinScelta} chiave="valore" unita="/5"
+                  etichetta={campoCheckinScelto?.l ?? ''} colore="#1B7F5A"
+                />
+                <p className="px-4 pt-1 text-[11px] text-muted">Scala 1-5: più alto è sempre meglio.</p>
+              </div>
+            )}
 
             {pesoSerie.length > 1 && (
               <div className="card p-5 pl-1">

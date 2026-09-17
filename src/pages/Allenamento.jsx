@@ -3,13 +3,30 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import {
   Section, Empty, Modal, Field, Spinner,
-  IconPlus, IconPlay, IconTrash, IconEdit, IconChevron, IconCheck, IconTimer, IconDumbbell, IconInfo,
+  IconPlus, IconPlay, IconTrash, IconEdit, IconChevron, IconCheck, IconTimer, IconDumbbell, IconInfo, IconMood,
 } from '../components/ui'
 import { useToast, useConfirm } from '../components/Feedback'
 import IntestazioneFoto, { SfondoFoto } from '../components/IntestazioneFoto'
 import fotoScheda from '../assets/bg/scheda.jpg'
 
 const oggi = () => new Date().toISOString().slice(0, 10)
+
+/*
+  A che settimana è arrivato l'atleta, contando dalla data di inizio scheda fino
+  all'ULTIMA seduta registrata (non da oggi): se l'atleta si ferma due settimane,
+  il numero resta fermo lì invece di correre avanti da solo — rispecchia il modo
+  in cui il coach la calcola già a mente guardando le date registrate.
+*/
+function calcolaSettimana(plan, ultimaSedutaData) {
+  const partenza = plan.start_date || plan.created_at?.slice(0, 10)
+  if (!partenza) return null
+  const inizio = new Date(partenza)
+  const riferimento = new Date(ultimaSedutaData || oggi())
+  const giorni = Math.floor((riferimento - inizio) / 86400000)
+  if (giorni < 0) return { settimana: 0, iniziaIl: partenza }
+  const settimana = Math.floor(giorni / 7) + 1
+  return { settimana, scaduta: settimana > (plan.weeks || 8), riferimento: riferimento.toISOString().slice(0, 10) }
+}
 
 /* Countdown di recupero: parte solo quando si tocca il pulsante "Recupero Ns",
    mai da solo dopo aver salvato un carico. Vive qui, non in un context, perché
@@ -82,20 +99,38 @@ function useTimerRecupero() {
 }
 
 export default function Allenamento() {
-  const { targetId, canEdit } = useAuth()
+  const { targetId, canEdit, viewing } = useAuth()
   const [plan, setPlan] = useState(undefined)   // undefined = carico, null = nessuna scheda
   const [days, setDays] = useState([])
   const [items, setItems] = useState({})        // { day_id: [item, ...] }
-  const [ultimi, setUltimi] = useState({})      // { item_id: log }
+  const [ultimi, setUltimi] = useState({})      // { item_id: [righe dell'ultima seduta precedente] }
+  const [oggiSerie, setOggiSerie] = useState({})   // { item_id: [righe già registrate oggi] }
+  const [ultimaSeduta, setUltimaSeduta] = useState(null)   // data dell'ultima seduta registrata, di tutta la scheda
   const [tab, setTab] = useState(0)
   const [logFor, setLogFor] = useState(null)
   const [editItem, setEditItem] = useState(null)
   const [editDay, setEditDay] = useState(null)
   const [editPlan, setEditPlan] = useState(null)
   const [infoAperto, setInfoAperto] = useState(false)
+  const [checkinOggi, setCheckinOggi] = useState(null)     // null finché non caricato, {} se non ancora fatto
+  const [checkinAperto, setCheckinAperto] = useState(false)
   const toast = useToast()
   const chiedi = useConfirm()
   const timer = useTimerRecupero()
+
+  // Il check-in è un autoresoconto: ha senso solo quando chi guarda la pagina è
+  // proprio l'atleta (non il coach che sta "guardando" la scheda di qualcun altro).
+  const mostraCheckin = !viewing
+
+  const caricaCheckin = useCallback(async () => {
+    if (!targetId || !mostraCheckin) return
+    const { data } = await supabase.from('checkins').select('*')
+      .eq('user_id', targetId).eq('date', oggi()).maybeSingle()
+    setCheckinOggi(data ?? {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetId, mostraCheckin])
+
+  useEffect(() => { caricaCheckin() }, [caricaCheckin])
 
   const load = useCallback(async () => {
     if (!targetId) return
@@ -121,9 +156,30 @@ export default function Allenamento() {
     const { data: logs } = await supabase.from('workout_logs').select('*')
       .eq('user_id', targetId).in('item_id', (it ?? []).map((x) => x.id))
       .order('date', { ascending: false }).order('set_no')
-    const last = {}
-    ;(logs ?? []).forEach((l) => { if (!last[l.item_id]) last[l.item_id] = l })
-    setUltimi(last)
+    // Due elenchi separati per esercizio: le serie già registrate OGGI (per la
+    // spunta verde) e le serie dell'ULTIMA SEDUTA PRECEDENTE, che restano visibili
+    // anche dopo aver registrato qualcosa oggi — è proprio a metà seduta che serve
+    // sapere cosa si è fatto la volta scorsa per le serie non ancora fatte.
+    const perItem = {}   // item_id -> Map(data -> [righe]), in ordine dalla più recente
+    ;(logs ?? []).forEach((l) => {
+      const m = (perItem[l.item_id] ||= new Map())
+      if (!m.has(l.date)) m.set(l.date, [])
+      m.get(l.date).push(l)
+    })
+    const oggiMap = {}
+    const ultimo = {}
+    Object.entries(perItem).forEach(([id, m]) => {
+      const date = [...m.keys()]
+      if (date[0] === oggi()) {
+        oggiMap[id] = m.get(date[0])
+        if (date[1]) ultimo[id] = m.get(date[1])
+      } else if (date[0]) {
+        ultimo[id] = m.get(date[0])
+      }
+    })
+    setOggiSerie(oggiMap)
+    setUltimi(ultimo)
+    setUltimaSeduta(logs?.[0]?.date ?? null)
   }, [targetId])
 
   useEffect(() => { setPlan(undefined); setTab(0); load() }, [load])
@@ -164,6 +220,8 @@ export default function Allenamento() {
     load()
   }
 
+  const infoSettimana = calcolaSettimana(plan, ultimaSeduta)
+
   return (
     <>
       <IntestazioneFoto
@@ -182,6 +240,51 @@ export default function Allenamento() {
       />
 
       <Section>
+        {infoSettimana && infoSettimana.settimana > 0 && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-card">
+            <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg font-cond text-[15px] font-bold ${
+              infoSettimana.scaduta ? 'bg-bad/10 text-bad' : 'bg-brandsoft text-brand'
+            }`}>
+              {infoSettimana.scaduta ? '!' : infoSettimana.settimana}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">
+                {infoSettimana.scaduta
+                  ? `Le ${plan.weeks} settimane previste sono finite`
+                  : `Settimana ${infoSettimana.settimana} di ${plan.weeks}`}
+              </p>
+              <p className="text-[12px] text-muted">
+                {infoSettimana.scaduta
+                  ? 'Valuta se rinnovare la scheda o allungarne la durata.'
+                  : ultimaSeduta
+                    ? `In base all'ultima seduta registrata (${new Date(infoSettimana.riferimento).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })})`
+                    : 'Ancora nessuna seduta registrata: conta da oggi.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {mostraCheckin && checkinOggi !== null && (
+          <button
+            onClick={() => setCheckinAperto(true)}
+            className={`mb-4 flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-left shadow-card ${
+              checkinOggi.id ? 'bg-white' : 'bg-brand text-white'
+            }`}
+          >
+            {checkinOggi.id
+              ? <IconCheck width={19} height={19} className="shrink-0 text-good" />
+              : <IconMood width={19} height={19} className="shrink-0" />}
+            <span className="flex-1">
+              <span className="block text-sm font-semibold">
+                {checkinOggi.id ? 'Check-in di oggi fatto' : 'Come ti senti oggi?'}
+              </span>
+              <span className={`block text-[12px] ${checkinOggi.id ? 'text-muted' : 'text-white/80'}`}>
+                {checkinOggi.id ? 'Tocca per modificarlo' : 'Sonno, stress, energia, dolori — 30 secondi'}
+              </span>
+            </span>
+          </button>
+        )}
+
         {plan.description && (
           <button onClick={() => setInfoAperto(true)}
                   className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[13px] font-medium text-brand shadow-sm">
@@ -231,7 +334,7 @@ export default function Allenamento() {
           <Empty title="Giorno vuoto" hint={canEdit ? 'Aggiungi gli esercizi qui sotto.' : 'Nessun esercizio previsto.'} />
         ) : (
           <GruppiEsercizi
-            lista={lista} ultimi={ultimi} oggi={oggi()} canEdit={canEdit}
+            lista={lista} ultimi={ultimi} oggiSerie={oggiSerie} canEdit={canEdit}
             onLog={setLogFor} onEdit={setEditItem}
             onTimer={(it) => timer.avvia(it.rest_sec, it.exercise?.name)}
           />
@@ -257,6 +360,13 @@ export default function Allenamento() {
       </Modal>
       <ModalPiano plan={editPlan} userId={targetId} onClose={() => setEditPlan(null)} onDone={load} />
       <BarraRecupero timer={timer} />
+      <ModalCheckin
+        open={checkinAperto}
+        esistente={checkinOggi}
+        userId={targetId}
+        onClose={() => setCheckinAperto(false)}
+        onSalvato={() => { setCheckinAperto(false); caricaCheckin() }}
+      />
     </>
   )
 }
@@ -358,7 +468,7 @@ function ModalGiorno({ day, onClose, onDone }) {
 /* Raggruppa gli esercizi del giorno per gruppo muscolare (nell'ordine in cui
    compaiono la prima volta), rinumerandoli nell'ordine visivo risultante:
    i numeri restano sempre 1,2,3... leggendo la pagina dall'alto in basso. */
-function GruppiEsercizi({ lista, ultimi, oggi, canEdit, onLog, onEdit, onTimer }) {
+function GruppiEsercizi({ lista, ultimi, oggiSerie, canEdit, onLog, onEdit, onTimer }) {
   const gruppi = {}
   lista.forEach((it) => {
     const nome = it.exercise?.muscle_group || 'Altro'
@@ -376,7 +486,7 @@ function GruppiEsercizi({ lista, ultimi, oggi, canEdit, onLog, onEdit, onTimer }
           n += 1
           return (
             <Esercizio
-              key={it.id} item={it} n={n} ultimo={ultimi[it.id]} oggi={oggi}
+              key={it.id} item={it} n={n} ultimo={ultimi[it.id]} oggiSerie={oggiSerie[it.id]}
               canEdit={canEdit}
               onLog={() => onLog(it)}
               onEdit={() => onEdit(it)}
@@ -390,10 +500,10 @@ function GruppiEsercizi({ lista, ultimi, oggi, canEdit, onLog, onEdit, onTimer }
 }
 
 /* ---------------- riga esercizio ---------------- */
-function Esercizio({ item, n, ultimo, oggi, canEdit, onLog, onEdit, onTimer }) {
+function Esercizio({ item, n, ultimo, oggiSerie, canEdit, onLog, onEdit, onTimer }) {
   const [aperto, setAperto] = useState(false)
   const ex = item.exercise
-  const fattoOggi = ultimo?.date === oggi
+  const fattoOggi = (oggiSerie?.length ?? 0) > 0
   return (
     <li className="card overflow-hidden">
       <button onClick={() => setAperto(!aperto)} className="flex w-full flex-col gap-2 p-4 text-left">
@@ -404,10 +514,10 @@ function Esercizio({ item, n, ultimo, oggi, canEdit, onLog, onEdit, onTimer }) {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block font-semibold leading-tight">{ex?.name ?? 'Esercizio'}</span>
-            {ultimo && (
-              <span className={`text-[12.5px] ${fattoOggi ? 'font-medium text-good' : 'text-muted'}`}>
-                {fattoOggi ? 'fatto oggi' : 'ultima volta'} {ultimo.weight_kg ?? '—'} kg × {ultimo.reps ?? '—'}
-              </span>
+            {fattoOggi ? (
+              <span className="text-[12.5px] font-medium text-good">fatto oggi · {oggiSerie.length} serie</span>
+            ) : ultimo?.length > 0 && (
+              <span className="text-[12.5px] text-muted">ultima seduta: {ultimo.length} serie</span>
             )}
           </span>
           <span className={`shrink-0 text-muted transition-transform ${aperto ? 'rotate-90' : ''}`}>
@@ -428,6 +538,34 @@ function Esercizio({ item, n, ultimo, oggi, canEdit, onLog, onEdit, onTimer }) {
           )}
           {(item.notes || ex?.cues) && (
             <p className="mb-3 text-sm leading-relaxed text-muted">{item.notes || ex.cues}</p>
+          )}
+          {ultimo?.length > 0 && (
+            <div className="mb-3 rounded-xl bg-canvas px-3 py-2.5">
+              <p className="mb-1.5 text-[12px] font-medium text-muted">
+                Seduta precedente ({ultimo[0].date.slice(8, 10)}/{ultimo[0].date.slice(5, 7)})
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {ultimo.map((s) => (
+                  <span key={s.id} className="stat text-[14px]">
+                    {s.weight_kg ?? '–'}×{s.reps ?? '–'}
+                    {s.rir != null && <span className="ml-0.5 text-[11px] font-normal text-muted">RIR{s.rir}</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {fattoOggi && (
+            <div className="mb-3 rounded-xl bg-good/10 px-3 py-2.5">
+              <p className="mb-1.5 text-[12px] font-medium text-good">Registrato oggi</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {oggiSerie.map((s) => (
+                  <span key={s.id} className="stat text-[14px]">
+                    {s.weight_kg ?? '–'}×{s.reps ?? '–'}
+                    {s.rir != null && <span className="ml-0.5 text-[11px] font-normal text-muted">RIR{s.rir}</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
           <div className="flex flex-wrap gap-2">
             {ex?.video_url && (
@@ -454,72 +592,112 @@ function Esercizio({ item, n, ultimo, oggi, canEdit, onLog, onEdit, onTimer }) {
 }
 
 /* ---------------- registrazione carichi ---------------- */
+const rigaVuota = () => ({ weight_kg: '', reps: '', rir: '' })
+
 function ModalLog({ item, userId, onClose, onDone }) {
-  const [riga, setRiga] = useState({ weight_kg: '', reps: '', rir: '', notes: '' })
+  const [serie, setSerie] = useState([rigaVuota()])
+  const [notes, setNotes] = useState('')
   const [storico, setStorico] = useState([])
   const [origine, setOrigine] = useState(null)   // 'oggi' | 'ultima' | null
   const [busy, setBusy] = useState(false)
   const toast = useToast()
+  const chiedi = useConfirm()
 
   useEffect(() => {
     if (!item) return
-    setRiga({ weight_kg: '', reps: '', rir: '', notes: '' })
+    setNotes('')
     setStorico([]); setOrigine(null)
+    const nSet = Math.min(Math.max(parseInt(item.sets, 10) || 3, 1), 8)
+    // Fino a 60 righe di storico: con più serie al giorno sono comunque diverse
+    // settimane di sedute precedenti da mostrare.
     supabase.from('workout_logs').select('*').eq('item_id', item.id).eq('user_id', userId)
-      .order('date', { ascending: false }).order('set_no').limit(12)
+      .order('date', { ascending: false }).order('set_no').limit(60)
       .then(({ data }) => {
         const s = data ?? []
         setStorico(s)
-        // Se l'atleta ha già registrato oggi, sta modificando quella riga.
-        // Altrimenti gli propongo i valori dell'ultima volta: di solito è quello che rialza.
-        const diOggi = s.find((l) => l.date === oggi())
-        if (diOggi) {
-          setRiga({
-            weight_kg: diOggi.weight_kg ?? '', reps: diOggi.reps ?? '',
-            rir: diOggi.rir ?? '', notes: diOggi.notes ?? '',
-          })
+        // Se l'atleta ha già registrato qualcosa oggi, precompilo con quelle serie
+        // (le sta correggendo o continuando) — ma AGGIUNGO righe vuote fino al
+        // numero di serie previste, altrimenti sembra che le altre siano sparite
+        // quando in realtà non erano ancora state fatte.
+        const diOggi = s.filter((l) => l.date === oggi())
+        if (diOggi.length) {
+          const fatte = diOggi.map((l) => ({ weight_kg: l.weight_kg ?? '', reps: l.reps ?? '', rir: l.rir ?? '' }))
+          const daAggiungere = Math.max(0, nSet - fatte.length)
+          setSerie([...fatte, ...Array.from({ length: daAggiungere }, rigaVuota)])
+          setNotes(diOggi[0].notes ?? '')
           setOrigine('oggi')
-        } else if (s[0]) {
-          setRiga({ weight_kg: s[0].weight_kg ?? '', reps: s[0].reps ?? '', rir: s[0].rir ?? '', notes: '' })
+          return
+        }
+        const dataUltima = s[0]?.date
+        const ultimaSeduta = dataUltima ? s.filter((l) => l.date === dataUltima) : []
+        if (ultimaSeduta.length) {
+          setSerie(ultimaSeduta.map((l) => ({ weight_kg: l.weight_kg ?? '', reps: l.reps ?? '', rir: l.rir ?? '' })))
           setOrigine('ultima')
+        } else {
+          setSerie(Array.from({ length: nSet }, rigaVuota))
+          setOrigine(null)
         }
       })
   }, [item, userId])
 
   if (!item) return null
 
+  function cambiaSerie(i, k, v) {
+    setSerie((prev) => prev.map((r, j) => (j === i ? { ...r, [k]: v } : r)))
+  }
+
   async function salva(e) {
     e.preventDefault()
     const data = oggi()
-    const log = {
-      user_id: userId,
-      item_id: item.id,
-      date: data,
-      set_no: 1,
-      weight_kg: riga.weight_kg === '' ? null : Number(riga.weight_kg),
-      reps: riga.reps === '' ? null : Number(riga.reps),
-      rir: riga.rir === '' ? null : Number(riga.rir),
-      notes: riga.notes.trim() || null,
-    }
-    if (log.weight_kg === null && log.reps === null) return onClose()
+    const righe = serie
+      .map((r, i) => ({
+        set_no: i + 1,
+        weight_kg: r.weight_kg === '' ? null : Number(r.weight_kg),
+        reps: r.reps === '' ? null : Number(r.reps),
+        rir: r.rir === '' ? null : Number(r.rir),
+      }))
+      .filter((r) => r.weight_kg !== null || r.reps !== null)
+
     setBusy(true)
+    // Cancella sempre prima: se `righe` resta vuoto (l'atleta ha svuotato tutti i
+    // campi) questo da solo elimina il carico di oggi, invece di non fare nulla.
     const { error: delError } = await supabase.from('workout_logs')
       .delete().eq('user_id', userId).eq('item_id', item.id).eq('date', data)
     if (delError) { setBusy(false); return toast.err(delError) }
 
-    const { error } = await supabase.from('workout_logs').insert(log)
+    if (righe.length) {
+      const { error } = await supabase.from('workout_logs').insert(
+        righe.map((r) => ({ user_id: userId, item_id: item.id, date: data, notes: notes.trim() || null, ...r }))
+      )
+      if (error) { setBusy(false); return toast.err(error) }
+    }
     setBusy(false)
-    if (error) return toast.err(error)
-    toast.ok(`Carico registrato · ${item.exercise?.name ?? ''}`)
+    toast.ok(righe.length ? `Carico registrato · ${item.exercise?.name ?? ''}` : 'Carico di oggi eliminato')
     onClose(); onDone()
   }
 
-  const visti = new Set()
-  const perData = []
+  async function eliminaOggi() {
+    const ok = await chiedi({
+      title: 'Elimino il carico di oggi?',
+      body: `Cancella tutte le serie registrate oggi per "${item.exercise?.name ?? 'questo esercizio'}". Non si torna indietro.`,
+      conferma: 'Elimina',
+      danger: true,
+    })
+    if (!ok) return
+    setBusy(true)
+    const { error } = await supabase.from('workout_logs')
+      .delete().eq('user_id', userId).eq('item_id', item.id).eq('date', oggi())
+    setBusy(false)
+    if (error) return toast.err(error)
+    toast.ok('Carico di oggi eliminato')
+    onClose(); onDone()
+  }
+
+  const sedute = []
+  const indiceData = {}
   storico.forEach((l) => {
-    if (visti.has(l.date)) return
-    visti.add(l.date)
-    perData.push(l)
+    if (!(l.date in indiceData)) { indiceData[l.date] = sedute.length; sedute.push({ date: l.date, righe: [], notes: l.notes }) }
+    sedute[indiceData[l.date]].righe.push(l)
   })
 
   return (
@@ -528,31 +706,53 @@ function ModalLog({ item, userId, onClose, onDone }) {
         Obiettivo di oggi: {item.sets} serie da {item.reps} ripetizioni{item.rir ? ` a RIR ${item.rir}` : ''}
       </p>
       {origine === 'ultima' && (
-        <p className="mb-4 text-[13px] text-brand">Precompilato con i valori dell'ultima volta: modifica se serve.</p>
+        <p className="mb-4 text-[13px] text-brand">Precompilato con le serie dell'ultima volta: modifica se serve.</p>
       )}
       {origine === 'oggi' && (
         <p className="mb-4 text-[13px] text-muted">Stai modificando la seduta già registrata oggi.</p>
       )}
       {!origine && <div className="mb-4" />}
       <form onSubmit={salva} className="space-y-3">
-        <div className="grid grid-cols-3 items-center gap-2 text-[12px] text-muted">
-          <span>kg</span><span>rip</span><span>RIR</span>
-        </div>
-        <div className="grid grid-cols-3 items-center gap-2">
-          {['weight_kg', 'reps', 'rir'].map((k) => (
-            <input
-              key={k} className="field px-2 py-2 text-center" type="number" step="0.5" inputMode="decimal"
-              value={riga[k]}
-              onChange={(e) => setRiga((prev) => ({ ...prev, [k]: e.target.value }))}
-            />
+        {serie.length > 0 && (
+          <div className="grid grid-cols-[1.5rem_1fr_1fr_1fr_auto] items-center gap-2 text-[12px] text-muted">
+            <span /><span>kg</span><span>rip</span><span>RIR</span><span />
+          </div>
+        )}
+        <div className="space-y-2">
+          {serie.map((r, i) => (
+            <div key={i} className="grid grid-cols-[1.5rem_1fr_1fr_1fr_auto] items-center gap-2">
+              <span className="text-center text-[12px] font-medium text-muted">{i + 1}</span>
+              {['weight_kg', 'reps', 'rir'].map((k) => (
+                <input
+                  key={k} className="field px-2 py-2 text-center" type="number" step="0.5" inputMode="decimal"
+                  value={r[k]}
+                  onChange={(e) => cambiaSerie(i, k, e.target.value)}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => setSerie((prev) => prev.filter((_, j) => j !== i))}
+                className="p-2 text-muted"
+                aria-label="Togli questa serie"
+              >
+                <IconTrash width={16} height={16} />
+              </button>
+            </div>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={() => setSerie((prev) => [...prev, rigaVuota()])}
+          className="btn-ghost w-full border-dashed py-2 text-sm"
+        >
+          <IconPlus width={16} height={16} /> Aggiungi serie
+        </button>
         <label className="block">
           <span className="label">Sensazioni su questo esercizio</span>
           <textarea
             className="field min-h-[74px]"
-            value={riga.notes}
-            onChange={(e) => setRiga((prev) => ({ ...prev, notes: e.target.value }))}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
             placeholder="Esecuzione, fatica, dolore, stabilita, pompaggio..."
           />
         </label>
@@ -560,19 +760,28 @@ function ModalLog({ item, userId, onClose, onDone }) {
           <button className="btn-primary flex-1" disabled={busy}>{busy ? 'Salvo…' : 'Salva il carico di oggi'}</button>
           <button type="button" onClick={onClose} className="btn-ghost">Chiudi</button>
         </div>
+        {origine === 'oggi' && (
+          <button type="button" onClick={eliminaOggi} disabled={busy} className="btn-danger w-full text-sm">
+            <IconTrash width={16} height={16} /> Elimina il carico di oggi
+          </button>
+        )}
       </form>
 
-      {perData.length > 0 && (
+      {sedute.length > 0 && (
         <div className="mt-6 border-t border-line pt-4">
           <p className="mb-2 text-[13px] font-medium text-muted">Sedute precedenti</p>
-          {perData.map((l) => (
-            <div key={l.id} className="flex gap-3 py-1.5 text-sm">
-              <span className="w-16 shrink-0 text-muted">{l.date.slice(8, 10)}/{l.date.slice(5, 7)}</span>
-              <div>
-                <p className="stat text-[16px]">
-                  {l.weight_kg ?? '–'}×{l.reps ?? '–'}{l.rir != null ? ` · RIR ${l.rir}` : ''}
+          {sedute.map((s) => (
+            <div key={s.date} className="flex gap-3 py-1.5 text-sm">
+              <span className="w-16 shrink-0 text-muted">{s.date.slice(8, 10)}/{s.date.slice(5, 7)}</span>
+              <div className="min-w-0">
+                <p className="stat flex flex-wrap gap-x-3 gap-y-0.5 text-[15px]">
+                  {s.righe.map((l) => (
+                    <span key={l.id}>
+                      {l.weight_kg ?? '–'}×{l.reps ?? '–'}{l.rir != null ? ` R${l.rir}` : ''}
+                    </span>
+                  ))}
                 </p>
-                {l.notes && <p className="text-[12px] text-muted">{l.notes}</p>}
+                {s.notes && <p className="text-[12px] font-normal text-muted">{s.notes}</p>}
               </div>
             </div>
           ))}
@@ -671,13 +880,14 @@ function ModalItem({ item, onClose, onDone }) {
 
 /* ---------------- nuova scheda ---------------- */
 function ModalPiano({ plan, userId, onClose, onDone }) {
-  const [f, setF] = useState({ title: '', description: '', weeks: 8 })
+  const [f, setF] = useState({ title: '', description: '', weeks: 8, start_date: oggi() })
   const [busy, setBusy] = useState(false)
   const toast = useToast()
 
   useEffect(() => {
     if (plan) setF({
       title: plan.title ?? '', description: plan.description ?? '', weeks: plan.weeks ?? 8,
+      start_date: plan.start_date ?? plan.created_at?.slice(0, 10) ?? oggi(),
     })
   }, [plan])
 
@@ -687,7 +897,7 @@ function ModalPiano({ plan, userId, onClose, onDone }) {
   async function salva(e) {
     e.preventDefault()
     setBusy(true)
-    const p = { title: f.title, description: f.description || null, weeks: Number(f.weeks) }
+    const p = { title: f.title, description: f.description || null, weeks: Number(f.weeks), start_date: f.start_date || null }
     const { error } = nuovo
       ? await supabase.from('workout_plans').insert({ ...p, user_id: userId, is_active: true })
       : await supabase.from('workout_plans').update(p).eq('id', plan.id)
@@ -711,12 +921,98 @@ function ModalPiano({ plan, userId, onClose, onDone }) {
             L'atleta la legge aprendo "Come leggere la scheda" sotto al titolo.
           </span>
         </label>
-        <Field label="Durata (settimane)" type="number" value={f.weeks}
-               onChange={(e) => setF({ ...f, weeks: e.target.value })} />
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Data di inizio" type="date" value={f.start_date}
+                 onChange={(e) => setF({ ...f, start_date: e.target.value })} />
+          <Field label="Durata (settimane)" type="number" value={f.weeks}
+                 onChange={(e) => setF({ ...f, weeks: e.target.value })} />
+        </div>
+        <span className="-mt-2 block text-xs text-muted">
+          Da qui in poi l'app calcola da sola a che settimana è arrivato l'atleta.
+        </span>
         {nuovo && <p className="text-sm text-muted">Dopo la creazione aggiungi tu i giorni che ti servono.</p>}
         <button className="btn-primary w-full" disabled={busy}>
           {busy ? 'Salvo…' : nuovo ? 'Crea scheda' : 'Salva modifiche'}
         </button>
+      </form>
+    </Modal>
+  )
+}
+
+const SCALE_CHECKIN = [
+  { k: 'sleep_score',    l: 'Sonno',   estremi: '1 = malissimo · 5 = benissimo' },
+  { k: 'stress_score',   l: 'Stress',  estremi: '1 = molto stressato · 5 = rilassato' },
+  { k: 'energy_score',   l: 'Energia', estremi: '1 = scarico/a · 5 = pieno/a di energie' },
+  { k: 'soreness_score', l: 'Dolori',  estremi: '1 = molto indolenzito/a · 5 = nessun dolore' },
+]
+
+function ScalaCheckin({ label, estremi, value, onChange }) {
+  return (
+    <div>
+      <p className="label mb-1.5">{label}</p>
+      <div className="flex gap-2">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            type="button"
+            key={n}
+            onClick={() => onChange(n)}
+            className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold ${
+              value === n ? 'border-brand bg-brandsoft text-brand' : 'border-line text-muted'
+            }`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <p className="mt-1 text-[11px] text-muted">{estremi}</p>
+    </div>
+  )
+}
+
+/* Autoresoconto giornaliero: niente punteggio calcolato, solo i quattro numeri
+   grezzi. Un upsert su (user_id, date): al secondo tocco dello stesso giorno si
+   aggiorna la riga invece di duplicarla. */
+function ModalCheckin({ open, esistente, userId, onClose, onSalvato }) {
+  const [form, setForm] = useState({})
+  const [busy, setBusy] = useState(false)
+  const toast = useToast()
+
+  useEffect(() => {
+    if (open) setForm(esistente ?? {})
+  }, [open, esistente])
+
+  async function salva(e) {
+    e.preventDefault()
+    setBusy(true)
+    const payload = {
+      user_id: userId,
+      date: oggi(),
+      sleep_score: form.sleep_score ?? null,
+      stress_score: form.stress_score ?? null,
+      energy_score: form.energy_score ?? null,
+      soreness_score: form.soreness_score ?? null,
+      notes: form.notes || null,
+    }
+    const { error } = await supabase.from('checkins').upsert(payload, { onConflict: 'user_id,date' })
+    setBusy(false)
+    if (error) return toast.err(error)
+    toast.ok('Check-in salvato')
+    onSalvato()
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Check-in di oggi">
+      <form onSubmit={salva} className="space-y-5">
+        {SCALE_CHECKIN.map(({ k, l, estremi }) => (
+          <ScalaCheckin key={k} label={l} estremi={estremi} value={form[k]} onChange={(n) => setForm({ ...form, [k]: n })} />
+        ))}
+        <label className="block">
+          <span className="label">Note (facoltative)</span>
+          <textarea className="field min-h-[70px]" value={form.notes ?? ''}
+                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                    placeholder="Come ti senti oggi? Qualcosa da segnalare al coach?" />
+        </label>
+        <button className="btn-primary w-full" disabled={busy}>{busy ? 'Salvo…' : 'Salva check-in'}</button>
       </form>
     </Modal>
   )

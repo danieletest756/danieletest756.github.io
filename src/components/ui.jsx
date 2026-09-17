@@ -61,6 +61,12 @@ export const IconFeedback = (p) => (
     <path d="M8 9.5h8M8 12.5h5" />
   </svg>
 )
+export const IconMood = (p) => (
+  <svg {...I(p)}><circle cx="12" cy="12" r="8.5" /><path d="M8.5 14.5c1 1.2 2.2 1.8 3.5 1.8s2.5-.6 3.5-1.8" /><path d="M8.7 10h.1M15.2 10h.1" /></svg>
+)
+export const IconCalendar = (p) => (
+  <svg {...I(p)}><path d="M4 5.5h16v14H4z" /><path d="M4 9.5h16M8 3v4M16 3v4" /></svg>
+)
 export const IconTarget = (p) => (
   <svg {...I(p)}><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="0.8" fill="currentColor" /></svg>
 )

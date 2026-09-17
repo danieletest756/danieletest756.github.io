@@ -32,6 +32,7 @@ src/
   lib/foto.js             upload, link firmati ed eliminazione delle foto misure
   lib/immagini.js         compressione su canvas prima del caricamento
   lib/riepilogoMisura.js  immagine PNG riassuntiva di una misurazione (canvas nativo)
+  lib/ics.js              file .ics per aggiungere un appuntamento al calendario del telefono
   components/Layout.jsx   intestazione + barra di navigazione inferiore
   components/ui.jsx       icone SVG inline, Modal, Field, Section, Empty, Spinner
   components/Feedback.jsx notifiche a scomparsa e finestre di conferma
@@ -39,13 +40,13 @@ src/
   components/GuidaMisure.jsx sagome uomo/donna con i punti dove misurare (SVG disegnato a mano)
   components/GraficoAndamento.jsx grafico a linea condiviso (peso, carichi) — porta con sé recharts
   pages/Login.jsx
-  pages/Allenamento.jsx   giorni, esercizi, video, registrazione carichi, editor coach
+  pages/Allenamento.jsx   giorni, esercizi, video, carichi, check-in, settimana attuale, editor coach
   pages/Dieta.jsx         macro obiettivo, giorni, pasti, alimenti
   pages/Misure.jsx        storico, differenze, grafico peso, foto
-  pages/Progressi.jsx     obiettivi, stat riassuntive, grafici (peso, altre misure, carichi), record, foto
+  pages/Progressi.jsx     obiettivi, stat, grafici (peso, altre misure, check-in, carichi), record, foto
   pages/Profilo.jsx       dati personali + note private del coach
   pages/Segnalazioni.jsx  bug/migliorie segnalati da chi usa l'app     (tab "Feedback")
-  pages/Atleti.jsx        elenco atleti, ruoli, copia scheda   (solo coach)
+  pages/Atleti.jsx        elenco atleti, ruoli, copia scheda, avvisi, agenda   (solo coach)
   pages/Esercizi.jsx      libreria con immagini e video        (solo coach)
 supabase/
   schema.sql              tabelle, trigger, funzioni, policy RLS, bucket storage
@@ -55,6 +56,8 @@ supabase/
   migration_diet_days.sql         da eseguire sui progetti creati prima dei giorni nella dieta
   migration_feedback.sql          da eseguire sui progetti creati prima della sezione Feedback
   migration_goals.sql             da eseguire sui progetti creati prima degli Obiettivi
+  migration_checkins.sql          da eseguire sui progetti creati prima del check-in giornaliero
+  migration_appuntamenti.sql      da eseguire sui progetti creati prima dell'Agenda
   seed_esercizi.sql       25 esercizi di partenza
 templates/
   scheda_allenamento_template.sql  da far compilare a un'IA insieme al PDF di un atleta
@@ -159,7 +162,7 @@ scaricala e comprimila a una dimensione simile prima di metterla in `public/img/
 
 ## Stato attuale
 
-Funzionante e compilabile (`npm run build` passa, ~127 kB gzip iniziali). Girata in locale.
+Funzionante e compilabile (`npm run build` passa, ~129 kB gzip iniziali). Girata in locale.
 Hosting, dominio e login Google sono volutamente accantonati.
 
 **Chi riprende in mano il progetto: se il database Supabase è stato creato prima delle foto,
@@ -168,7 +171,9 @@ trova la tabella `measurement_photos` e le foto non si caricano. Se era stato cr
 delle note sui carichi, esegui anche `supabase/migration_workout_log_notes.sql`. Se era stato
 creato prima del ruolo semi-god, esegui anche `supabase/migration_semi_god.sql`. Se era stato
 creato prima della sezione Feedback, esegui anche `supabase/migration_feedback.sql`. Se era stato
-creato prima degli Obiettivi in Progressi, esegui anche `supabase/migration_goals.sql`.**
+creato prima degli Obiettivi in Progressi, esegui anche `supabase/migration_goals.sql`. Se era
+stato creato prima del check-in giornaliero, esegui anche `supabase/migration_checkins.sql`. Se
+era stato creato prima dell'Agenda, esegui anche `supabase/migration_appuntamenti.sql`.**
 
 **L'app è installabile (PWA)**: `public/manifest.webmanifest`, `public/sw.js` (service worker
 minimo, scritto a mano, nessuna dipendenza) e le icone in `public/icons/` (generate da
@@ -185,10 +190,40 @@ sessioni precedenti a questa guardia. Non installa da App Store/Play Store (rich
 account sviluppatore a pagamento): è "Aggiungi alla schermata Home" da Safari/Chrome, poi si
 apre come un'app, senza barra del browser.
 
-**La registrazione dei carichi è per giorno, non per serie.** `ModalLog` in Allenamento.jsx
-salva un'unica riga per esercizio al giorno (cancella ed reinserisce su `user_id+item_id+date`),
-con un campo `notes` per le sensazioni. Non è più un elenco di serie separate: se serve
-tornare a registrare serie singole, cambia sia il form sia la lettura in `load()`.
+**La registrazione dei carichi è per serie, di nuovo.** `ModalLog` in Allenamento.jsx cancella e
+reinserisce tutte le righe di `user_id+item_id+date` a ogni salvataggio (non un upsert riga per
+riga): un form con una riga per serie (kg/rip/RIR, + "Aggiungi serie", cestino per toglierne una),
+`notes` condivisa su tutte le righe di quella seduta. Il campo `set_no` in `workout_logs` esisteva
+già dalla prima versione dello schema — il modello "una riga al giorno" (versione precedente) era
+solo una scelta applicativa, non un vincolo di tabella. Tre cose a cui fare attenzione se lo tocchi
+di nuovo (bug reali, già presi e corretti una volta):
+
+- **Precompilare da "oggi" deve sempre aggiungere righe vuote fino al numero di serie previste**
+  (`item.sets`), non mostrare solo le righe già salvate: altrimenti chi ha registrato 1 serie su 3
+  e riapre il form vede sparire le altre due caselle, quando in realtà non erano ancora state
+  fatte — sembra un bug di cancellazione, non lo è, ma va evitato lo stesso.
+- **`ultimi[item_id]` è sempre l'ultima seduta PRECEDENTE, mai quella di oggi.** `load()` separa
+  esplicitamente `ultimi` (seduta precedente, per il confronto) da `oggiSerie` (le serie già
+  registrate oggi, per la spunta verde). Non fonderli in un solo stato "ultimo log": è proprio a
+  metà seduta — dopo aver già segnato la prima serie — che serve ancora vedere cosa si è fatto la
+  volta scorsa per le serie non ancora fatte. `Esercizio` mostra entrambi i blocchi insieme quando
+  ci sono: "Seduta precedente" (grigio) e "Registrato oggi" (verde), non uno al posto dell'altro.
+- **Il salvataggio deve sempre passare dalla `delete` anche se `righe` risulta vuoto** (l'atleta ha
+  svuotato tutti i campi): è così che si elimina un carico già registrato. Un `return` anticipato
+  prima della delete quando il form è vuoto è il bug che rendeva impossibile cancellare un carico.
+  C'è anche un pulsante esplicito "Elimina il carico di oggi" (con conferma) quando `origine ===
+  'oggi'`, per non affidarsi solo a "svuota i campi e salva" che non è ovvio.
+
+**Attenzione ovunque si legga `workout_logs` per un grafico o un confronto fra sedute**: più serie
+lo stesso giorno significano più righe con la stessa `date`. Prima di confrontare "la seduta di
+oggi" con "quella precedente" (Progressi: grafico del carico; Atleti: avviso "carico in calo"),
+aggrega prima per data (di solito il **top set**, il peso più alto di quel giorno) e poi confronta
+le date fra loro — mai le righe grezze: confrontare due righe qualsiasi rischia di paragonare due
+serie della STESSA seduta (dove il calo per fatica è normalissimo) invece di due sedute diverse.
+
+**La card esercizio non ha un pulsante dedicato per "vedi i carichi precedenti"**: il tap che già
+espande la card per vedere video/note mostra anche i blocchi "Seduta precedente"/"Registrato
+oggi" — niente pulsante/modale in più apposta.
 
 **Export foto** (`lib/esportaFoto.js`, due funzioni): `esportaTutteLeFoto()` — da Atleti, solo
 coach — mette in un unico zip le foto di *tutti* gli atleti, una cartella per atleta e una
@@ -243,6 +278,50 @@ un elenco di record personali (peso massimo mai registrato per ogni esercizio, c
 foto prima/ora a confronto. Ha la sua foto di sfondo (`src/assets/bg/progressi.jpg`) e usa
 `<IntestazioneFoto>` come le altre pagine.
 
+Fatto: **Agenda** (tabella `appointments`) — appuntamenti reali (sedute in presenza, videochiamate),
+non le sedute della scheda: quelle restano in `workout_logs`. Il coach la gestisce da una sezione
+in Atleti.jsx (crea/elimina, per qualunque atleta). In Profilo.jsx compare per tutti (stessa
+sezione "Prossimi appuntamenti" sia per il coach che guarda un atleta sia per l'atleta stesso), ma
+crea/elimina solo se `canEdit`: per un atleta semplice resta di sola lettura (coerente con le
+policy RLS, che non gli concedono scrittura), per un **semi-god** invece diventa gestibile — è
+l'unico posto dove può toccare la propria agenda, dato che la pagina Atleti resta `isGod`-only e
+lui non ci arriva mai. Ogni appuntamento ha un pulsante che genera un file **.ics**
+(`lib/ics.js`) invece di un vero collegamento a Google Calendar: niente OAuth, niente Google Cloud
+Console da configurare, niente token da rinnovare nel tempo — un file di testo che Google
+Calendar, Apple Calendar e Outlook aprono tutti allo stesso modo con un tocco. Se un giorno serve
+davvero la sincronizzazione automatica (creare l'evento senza che nessuno tocchi nulla), è un
+progetto a sé: richiede che il coach configuri un progetto Google Cloud con l'API Calendar
+abilitata, e la gestione lato server del rinnovo del token — non è un ritocco di un pomeriggio.
+
+Fatto: **settimana attuale della scheda** (`calcolaSettimana` in Allenamento.jsx) — usa i campi
+già esistenti `workout_plans.start_date` (ora impostabile dal form, prima esisteva in tabella ma
+non veniva mai scritto) e `weeks`. Il numero di settimana **non conta da oggi**: conta i giorni da
+`start_date` fino all'**ultima seduta registrata** (l'ultima data fra tutti i `workout_logs` della
+scheda, non un valore scritto a mano) — se l'atleta si ferma due settimane, il numero resta fermo
+lì invece di correre avanti da solo, rispecchiando il modo in cui il coach lo calcolava già a
+mente guardando le date registrate. Se supera `weeks`, mostra un avviso "settimane finite" invece
+di continuare a contare in silenzio (es. "settimana 11 di 8"): serve a ricordare di rinnovare la
+scheda. Se `start_date` non è mai stato impostato (schede create prima di questa funzione), usa
+`created_at` come scorciatoia — la fascia compare comunque, senza dover ritoccare ogni scheda a mano.
+
+Fatto: **check-in giornaliero** (tabella `checkins`) — in Allenamento.jsx, in cima alla pagina,
+un pulsante "Come ti senti oggi?" (blu se non ancora fatto, bianco con spunta se già fatto) apre
+una Modal con quattro scale 1-5 (sonno, stress, energia, dolori) + una nota libera, upsert su
+`(user_id, date)`: un tocco al giorno, ritoccarlo aggiorna la stessa riga. Scala pensata apposta
+con ALTO sempre = meglio su tutti e quattro i campi (anche stress e dolori, dove intuitivamente
+uno penserebbe il contrario), per non dover invertire il segno campo per campo quando la si legge
+altrove. Compare **solo quando chi guarda la pagina è l'atleta stesso** (`!viewing`): il coach che
+sta guardando la scheda di un altro non deve poter rispondere "come ti senti" al posto suo. In
+Progressi diventa un grafico (select fra le quattro scale, come "Altre misure nel tempo"). In
+Atleti.jsx alimenta gli **avvisi trasparenti** (`calcolaSegnali`): tre regole semplici e spiegabili
+in una frase — carico in calo sulle ultime due sedute di un esercizio, check-in fermo da 5+ giorni
+(solo se l'atleta lo ha già usato almeno una volta, altrimenti chi non l'ha mai toccato
+comparirebbe sempre segnalato), media degli ultimi 3 check-in di energia o sonno ≤ 2. **Scelta
+deliberata: niente punteggio unico calcolato** (un "readiness score" o simile): un numero che
+sembra scientifico ma è in realtà una formula improvvisata darebbe una falsa sicurezza su
+decisioni reali sulla salute di una persona. Se un giorno serve andare in quella direzione, la
+formula deve venire da chi ha competenze vere di scienze motorie, non da un indovinello in codice.
+
 Fatto: **Obiettivi** (dentro Progressi, tabella `goals`) — il coach (o il semi-god su se stesso)
 imposta un traguardo su una misura del corpo, sul peso o sul carico di un esercizio specifico,
 con un valore di partenza e uno obiettivo; Progressi lo mostra come anello di avanzamento (SVG,
@@ -275,6 +354,6 @@ Difetti noti, piccoli ma reali:
 
 - Non aggiungere TypeScript o cambiare build tool senza chiedere.
 - Non spostare la logica dei permessi nel frontend "per semplicità".
-- Non introdurre dipendenze pesanti: il bundle iniziale sta a ~127 kB gzip e va tenuto basso,
+- Non introdurre dipendenze pesanti: il bundle iniziale sta a ~129 kB gzip e va tenuto basso,
   gli atleti aprono l'app in palestra con la connessione che capita. `recharts` è già caricato
   in lazy loading solo su Misure e Progressi (via `GraficoAndamento.jsx`): mantieni quel pattern.
