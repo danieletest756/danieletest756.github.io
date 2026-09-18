@@ -1,0 +1,67 @@
+# ============================================================
+# TEMPLATE — SCHEDA DI ALLENAMENTO (formato testo semplice)
+#
+# Non incollare questo file così com'è: fai compilare i <<segnaposto>> a
+# un'IA (ChatGPT, Claude, ecc.) insieme al PDF/testo della scheda di un
+# atleta, con un prompt tipo:
+#
+#   "Compila questo template con i dati di questa scheda, sostituendo ogni
+#   <<segnaposto>>. Segui alla lettera le istruzioni scritte nei commenti
+#   (le righe che iniziano con #). Alla fine non deve restare nessun
+#   <<...>> nel risultato."
+#
+# Poi incolla il risultato dentro l'app: Allenamento → "Importa scheda
+# (testo)" (o "Sostituisci con un'importazione (testo)" se l'atleta ha già
+# una scheda). Non serve l'email dell'atleta: l'app sa già di chi si tratta
+# dalla pagina in cui ti trovi.
+#
+# Le righe che iniziano con # sono commenti: l'app le ignora comunque, ma
+# è più ordinato togliere questo blocco di istruzioni dal risultato finale.
+#
+# ------------------------------------------------------------
+# COME FUNZIONA IL FORMATO
+# ------------------------------------------------------------
+# - "Titolo:", "Descrizione:" e "Durata:" si scrivono UNA VOLTA, prima del
+#   primo "Giorno:". "Descrizione:" è facoltativa (cancella la riga se non
+#   serve): se il documento dà una progressione settimanale (es. un RIR
+#   che scende di settimana in settimana), scrivila per intero qui, non
+#   nei singoli esercizi — l'atleta la legge da un pulsante "Come leggere
+#   la scheda".
+# - Ogni giorno inizia con una riga "Giorno: <titolo>". Una riga "Nota:"
+#   subito dopo è facoltativa (nota specifica di quel giorno).
+# - Ogni esercizio è una riga che inizia con "-", con le informazioni
+#   separate da "|". Il PRIMO pezzo è sempre il nome dell'esercizio.
+#   Gli altri pezzi possono stare in QUALSIASI ordine — si riconoscono
+#   dalla parola scritta vicino al numero, non dalla posizione:
+#     "3 serie"        (non solo "3": la parola "serie" è quello che li
+#                        distingue dalle ripetizioni)
+#     "8-10 rip"        (non solo "8-10")
+#     "RIR 2"
+#     "90 rec"          (recupero in SECONDI; "2-3 min" diventa "150 rec")
+#     un gruppo muscolare, se lo sai, fra: Petto, Dorso, Spalle, Braccia,
+#     Quadricipiti, Femorali, Glutei, Polpacci, Core, Cardio — serve solo
+#     se l'esercizio non esiste già in libreria (altrimenti questo pezzo
+#     viene ignorato, si usa quello già salvato)
+#   Qualunque altro pezzo che non rientra in queste categorie diventa una
+#   nota libera sull'esercizio (es. "in alternativa: leg press"), non fa
+#   fallire l'importazione. Un pezzo che non sai: toglilo, non serve
+#   lasciare un "|" vuoto al suo posto (ma va bene anche se lo lasci).
+# - Il nome dell'esercizio si abbina alla libreria condivisa per nome
+#   (senza distinguere maiuscole/minuscole): se un esercizio con questo
+#   nome esiste già, viene riusato automaticamente; se non esiste, viene
+#   creato al volo con il gruppo muscolare indicato.
+# ============================================================
+
+Titolo: <<Titolo della scheda>>
+Descrizione: <<Testo libero (RIR, riscaldamento, progressione settimanale...), oppure cancella questa riga>>
+Durata: <<numero di settimane, es. 8>>
+
+Giorno: <<Titolo giorno 1, es. Petto (forza)>>
+Nota: <<facoltativa, oppure cancella questa riga>>
+- <<Nome esercizio 1>> | <<gruppo muscolare>> | <<3 serie>> | <<8-10 rip>> | <<RIR 2>> | <<90 rec>>
+- <<Nome esercizio 2>> | <<3 serie>> | <<12-15 rip>>
+# aggiungi una riga "- ..." per ogni altro esercizio di questo giorno
+
+Giorno: <<Titolo giorno 2>>
+- <<Nome esercizio>> | <<...>>
+# ripeti un blocco "Giorno: ..." + le sue righe "- ..." per ogni altro giorno della scheda

@@ -4,10 +4,12 @@ import { useAuth } from '../lib/AuthContext'
 import {
   Section, Empty, Modal, Field, Spinner,
   IconPlus, IconPlay, IconTrash, IconEdit, IconChevron, IconCheck, IconTimer, IconDumbbell, IconInfo, IconMood,
+  IconDownload,
 } from '../components/ui'
 import { useToast, useConfirm } from '../components/Feedback'
 import IntestazioneFoto, { SfondoFoto } from '../components/IntestazioneFoto'
 import { importaScheda } from '../lib/importaScheda'
+import { leggiSchedaTesto } from '../lib/leggiSchedaTesto'
 import fotoScheda from '../assets/bg/scheda.jpg'
 
 const oggi = () => new Date().toISOString().slice(0, 10)
@@ -198,7 +200,7 @@ export default function Allenamento() {
           action={canEdit && (
             <div className="flex flex-col gap-2">
               <button onClick={() => setEditPlan({})} className="btn-primary">Crea scheda</button>
-              <button onClick={() => setImportaAperto(true)} className="btn-ghost">Importa da JSON</button>
+              <button onClick={() => setImportaAperto(true)} className="btn-ghost">Importa scheda (testo)</button>
             </div>
           )}
           icon={IconDumbbell}
@@ -315,7 +317,7 @@ export default function Allenamento() {
           {canEdit && (
             <button onClick={() => setImportaAperto(true)}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[13px] font-medium text-muted shadow-sm">
-              Sostituisci con un'importazione (JSON)
+              Sostituisci con un'importazione (testo)
             </button>
           )}
         </div>
@@ -1063,8 +1065,10 @@ function ModalCheckin({ open, esistente, userId, onClose, onSalvato }) {
 }
 
 /*
-  Incolla un JSON (vedi templates/scheda_allenamento_import.json) e crea la
-  scheda intera con le query normali dell'app — nessun passaggio da Supabase.
+  Incolla un testo semplice (vedi templates/scheda_allenamento_import.txt) e
+  crea la scheda intera con le query normali dell'app — nessun passaggio da
+  Supabase, e niente sintassi tipo JSON da rispettare alla lettera: righe come
+  "Titolo: ...", "Giorno: ...", "- Nome esercizio | 3 serie | 8-10 rip | RIR 2".
   Sostituisce quella attiva se ce n'è già una, esattamente come creandone una
   a mano: quella vecchia resta nel database ma non più attiva.
 */
@@ -1080,9 +1084,9 @@ function ModalImportaScheda({ open, userId, onClose, onDone }) {
     e.preventDefault()
     let dati
     try {
-      dati = JSON.parse(testo)
-    } catch {
-      return toast.err('Il testo incollato non è un JSON valido: controlla parentesi e virgole.')
+      dati = leggiSchedaTesto(testo)
+    } catch (err) {
+      return toast.err(err)
     }
 
     const ok = await chiedi({
@@ -1108,18 +1112,25 @@ function ModalImportaScheda({ open, userId, onClose, onDone }) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Importa scheda da JSON">
+    <Modal open={open} onClose={onClose} title="Importa scheda">
       <form onSubmit={importa} className="space-y-4">
         <p className="text-sm text-muted">
-          Incolla qui il JSON generato a partire da <code>templates/scheda_allenamento_import.json</code>
-          (dallo stesso PDF/testo che daresti a un'IA con quel template). Gli esercizi si abbinano
-          alla libreria per nome: quelli nuovi vengono creati al volo.
+          Scarica il template, compilalo (a mano o con un'IA a partire dal PDF di un atleta) e
+          incolla qui il risultato. Gli esercizi si abbinano alla libreria per nome: quelli nuovi
+          vengono creati al volo.
         </p>
+        <a
+          href="/templates/scheda_allenamento_import.txt"
+          download
+          className="btn-ghost w-full"
+        >
+          <IconDownload width={16} height={16} /> Scarica il template
+        </a>
         <textarea
-          className="field min-h-[220px] font-mono text-[13px]"
+          className="field min-h-[260px] font-mono text-[13px]"
           value={testo}
           onChange={(e) => setTesto(e.target.value)}
-          placeholder='{"titolo": "...", "giorni": [...] }'
+          placeholder={'Titolo: ...\n\nGiorno: ...\n- Nome esercizio | 3 serie | 8-10 rip | RIR 2 | 90 rec'}
           required
         />
         <button className="btn-primary w-full" disabled={busy}>{busy ? 'Importo…' : 'Importa'}</button>

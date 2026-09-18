@@ -34,7 +34,8 @@ src/
   lib/riepilogoMisura.js  immagine PNG riassuntiva di una misurazione (canvas nativo)
   lib/ics.js              file .ics per aggiungere un appuntamento al calendario del telefono
   lib/obiettivoCorpo.js   decide se una variazione di misura è un progresso, in base all'obiettivo
-  lib/importaScheda.js    crea una scheda intera (giorni+esercizi) da un JSON, senza passare da Supabase
+  lib/importaScheda.js    crea una scheda intera (giorni+esercizi) da un oggetto dati, scrive su Supabase
+  lib/leggiSchedaTesto.js legge il formato a righe semplici e lo trasforma in quell'oggetto dati
   components/Layout.jsx   intestazione + barra di navigazione inferiore
   components/ui.jsx       icone SVG inline, Modal, Field, Section, Empty, Spinner
   components/Feedback.jsx notifiche a scomparsa e finestre di conferma
@@ -64,10 +65,11 @@ supabase/
   migration_diario_alimentare.sql da eseguire sui progetti creati prima del diario alimentare
   seed_esercizi.sql       25 esercizi di partenza
   functions/create-athlete/       Edge Function, va distribuita con la CLI (non con l'SQL Editor)
+public/templates/
+  scheda_allenamento_import.txt   template scaricabile dall'app ("Importa scheda" in Allenamento)
 templates/
   scheda_allenamento_template.sql  da far compilare a un'IA, risultato va nel SQL Editor
-  scheda_allenamento_import.json   idem ma per l'import da dentro l'app (via consigliata)
-  scheda_dieta_template.sql        idem al primo, per il piano alimentare (non ha un import in-app)
+  scheda_dieta_template.sql        idem, per il piano alimentare (non ha un import in-app)
   README.md                        come si usano (non sono script/JSON da eseguire/incollare direttamente)
 ```
 
@@ -396,20 +398,36 @@ va distribuita con la Supabase CLI (`supabase functions deploy create-athlete`),
 complete nel `README.md`, punto 7. Finché non è distribuita, il pulsante c'è ma fallisce con un
 errore chiaro al primo utilizzo — non un fallimento silenzioso.
 
-Fatto: **importare una scheda da JSON** (`lib/importaScheda.js`, pulsante "Importa da JSON" /
-"Sostituisci con un'importazione (JSON)" in Allenamento.jsx) — alternativa al workflow
-"IA → SQL → SQL Editor di Supabase" usato finora: qui il coach dà in pasto a un'IA
-`templates/scheda_allenamento_import.json` invece del template SQL, e il risultato lo incolla
-in una casella di testo **dentro l'app**, non su Supabase. Nessuna email da cercare (l'app sa già
-di quale atleta si tratta dalla pagina in cui ci si trova, `targetId`), nessuna chiave, nessuna
-query scritta a mano: la funzione fa le stesse `insert` che farebbe il coach a mano dai modali,
-con la sessione già autenticata. Gli esercizi si abbinano alla libreria per nome (case-insensitive,
-tutta la libreria letta in una query sola per non farne una per ogni esercizio) e quelli nuovi
-vengono creati al volo. Importare disattiva la scheda attiva precedente (se c'è) esattamente come
-crearne una nuova a mano — non la cancella, resta nel database. **Il piano alimentare non ha
-ancora un equivalente**: per la dieta resta solo la via SQL (`scheda_dieta_template.sql`); se un
-domani serve anche lì, lo stesso pattern (`importaScheda.js` → `importaDieta.js`) si ripete quasi
-identico.
+Fatto: **importare una scheda da un testo semplice** (`lib/leggiSchedaTesto.js` +
+`lib/importaScheda.js`, pulsante "Importa scheda (testo)" / "Sostituisci con un'importazione
+(testo)" in Allenamento.jsx) — alternativa al workflow "IA → SQL → SQL Editor di Supabase" usato
+finora, e usa un template diverso: il coach lo scarica direttamente dal modale (pulsante "Scarica
+il template", un semplice `<a href="/templates/scheda_allenamento_import.txt" download>`), lo
+compila — a mano, o dandolo in pasto a un'IA insieme al PDF di un atleta — e incolla il risultato
+in una casella di testo **dentro l'app**, non su Supabase. Il template vive apposta in
+`public/templates/`, non in `templates/`, perché deve poter essere servito così, come
+`manifest.webmanifest` o le icone.
+**Prima versione era JSON: scartata perché troppo intimidatorio da incollare** (parentesi e
+virgolette, un errore e non funziona più), anche per chi non lo scrive di suo pugno. Il formato
+finale è a righe leggibili — `Titolo: ...`, `Giorno: ...`, `- Nome esercizio | 3 serie | 8-10 rip
+| RIR 2 | 90 rec` — scrivibile anche a mano, senza IA, in un pizzico. Due decisioni di
+progettazione da tenere a mente se lo tocchi:
+- **I pezzi dopo il nome si riconoscono dalla parola vicino al numero ("serie", "rip", "rir",
+  "rec"), non dalla posizione**: `interpretaSegmento()` in `leggiSchedaTesto.js` li accetta in
+  qualunque ordine. Verificato che regga anche con l'ordine invertito (vedi test manuale nella
+  cronologia). Un pezzo non riconosciuto diventa una nota libera sull'esercizio invece di far
+  fallire l'importazione — è deliberato, un'IA può scrivere qualcosa di imprevisto e non deve
+  bloccare tutto il resto.
+- **Le righe che iniziano con `#` sono commenti, ignorati**: il template ha un blocco di
+  istruzioni fatto così apposta, per essere inoffensivo anche se l'IA si scorda di toglierlo
+  dal risultato finale (capita).
+
+`leggiSchedaTesto()` produce la stessa forma dati che `importaScheda(userId, dati)` si aspettava
+già dalla versione JSON: la parte che scrive su Supabase (abbinamento libreria per nome, creazione
+esercizi nuovi al volo, disattivazione della scheda precedente) è rimasta un'unica versione,
+condivisa, cambiato solo cosa la alimenta. **Il piano alimentare non ha ancora un equivalente**:
+per la dieta resta solo la via SQL (`scheda_dieta_template.sql`); se un domani serve anche lì, lo
+stesso pattern si ripete quasi identico.
 
 ## Cose da non fare
 
