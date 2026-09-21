@@ -4,7 +4,10 @@ import { supabase } from './supabase'
   Esporta tutti i dati di allenamento/progressi di un atleta (tutto tranne la
   dieta) in un vero file .xlsx: scheda attiva, storico carichi, misurazioni,
   check-in, obiettivi — un foglio per categoria, intestazioni in grassetto,
-  colonne dimensionate, numeri e date come tali (non testo).
+  colonne dimensionate, numeri e date come tali (non testo). Il secondo
+  argomento (`da`) filtra le tre categorie che hanno una storia (carichi,
+  misurazioni, check-in) da quella data in poi; Scheda e Obiettivi restano
+  sempre completi perché non sono uno storico, sono lo stato attuale.
 
   Libreria: `exceljs`, non `xlsx`/SheetJS — quella ha due vulnerabilità ALTE su
   npm senza correzione disponibile (prototype pollution, ReDoS), scartata dopo
@@ -29,7 +32,24 @@ function foglio(wb, nome, colonne, righe) {
   return ws
 }
 
-export async function esportaDatiAtleta(userId) {
+/*
+  `da`: data ISO ('YYYY-MM-DD') da cui includere i dati con una data (storico
+  carichi, misurazioni, check-in), oppure null/undefined per tutta la storia.
+  Scheda e Obiettivi non hanno una "storia" da filtrare — sono lo stato
+  attuale — quindi restano sempre completi, qualunque intervallo si scelga.
+*/
+export async function esportaDatiAtleta(userId, da = null) {
+  let queryLogs = supabase.from('workout_logs')
+    .select('date, set_no, weight_kg, reps, rir, notes, item:workout_items(exercise:exercises(name))')
+    .eq('user_id', userId).order('date')
+  let queryMisure = supabase.from('measurements').select('*').eq('user_id', userId).order('date')
+  let queryCheckins = supabase.from('checkins').select('*').eq('user_id', userId).order('date')
+  if (da) {
+    queryLogs = queryLogs.gte('date', da)
+    queryMisure = queryMisure.gte('date', da)
+    queryCheckins = queryCheckins.gte('date', da)
+  }
+
   const [
     { data: piano },
     { data: logs },
@@ -40,11 +60,9 @@ export async function esportaDatiAtleta(userId) {
     supabase.from('workout_plans').select('*')
       .eq('user_id', userId).eq('is_active', true)
       .order('created_at', { ascending: false }).limit(1).maybeSingle(),
-    supabase.from('workout_logs')
-      .select('date, set_no, weight_kg, reps, rir, notes, item:workout_items(exercise:exercises(name))')
-      .eq('user_id', userId).order('date'),
-    supabase.from('measurements').select('*').eq('user_id', userId).order('date'),
-    supabase.from('checkins').select('*').eq('user_id', userId).order('date'),
+    queryLogs,
+    queryMisure,
+    queryCheckins,
     supabase.from('goals').select('*, esercizio:exercises(name)').eq('user_id', userId).order('created_at'),
   ])
 

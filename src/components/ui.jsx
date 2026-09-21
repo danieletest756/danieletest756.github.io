@@ -80,13 +80,29 @@ export const IconAward = (p) => (
 /* ---------- Blocchi ---------- */
 /** `accent`: vero (o "brand"/"saffron") disegna una sfumatura dietro al titolo.
     Usalo solo sul primo Section di una pagina, non su ogni sotto-sezione. */
-export function Section({ title, action, accent, children }) {
+/*
+  `bianco`: da passare quando la Section vive su una pagina con la foto di
+  sfondo (IntestazioneFoto/SfondoFoto è `position: fixed`, resta dietro a
+  tutta la pagina mentre scorri, non solo vicino al titolo grande in cima).
+  Il titolo diventa bianco con la stessa ombra del titolo di pagina — coerente
+  con quello, non un riquadro/pallino a sé — invece di restare `ink` scuro,
+  poco leggibile su certe zone della foto. Sulle pagine senza foto (canvas
+  piatto: Atleti, Esercizi, Segnalazioni) non serve: il testo scuro di default
+  si legge già bene lì, non passare `bianco` in quel caso.
+*/
+export function Section({ title, action, accent, bianco, children }) {
   return (
     <section className="mb-7">
       {(title || action) && (
         <div className="relative mb-2.5 flex items-end justify-between gap-3">
           {accent && <AccentoIntestazione principale={accent === true ? 'brand' : accent} />}
-          {title && <h2 className="font-cond text-[22px] font-semibold leading-none">{title}</h2>}
+          {title && (
+            <h2 className={`font-cond text-[22px] font-semibold leading-none ${
+              bianco ? 'text-white [text-shadow:0_1px_10px_rgba(16,26,43,.5)]' : ''
+            }`}>
+              {title}
+            </h2>
+          )}
           {action}
         </div>
       )}

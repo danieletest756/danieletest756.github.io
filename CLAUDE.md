@@ -433,7 +433,12 @@ stesso pattern si ripete quasi identico.
 Fatto: **esportare tutti i dati di un atleta** (`lib/esportaDatiAtleta.js`, sezione "Esporta dati"
 in Profilo.jsx, per tutti — non solo `canEdit`, è solo lettura) — scheda attiva, storico carichi,
 misurazioni, check-in e obiettivi (**non la dieta**, per scelta), un vero `.xlsx` con un foglio per
-categoria: intestazioni in grassetto, colonne dimensionate, numeri/date come tali, non testo.
+categoria: intestazioni in grassetto, colonne dimensionate, numeri/date come tali, non testo. Un
+selettore (7/30/90 giorni/tutto) filtra `esportaDatiAtleta(userId, da)` con `.gte('date', da)` —
+ma **solo sulle tre categorie che sono uno storico** (carichi, misurazioni, check-in): Scheda e
+Obiettivi sono lo stato attuale, non hanno una data da filtrare, restano sempre completi qualunque
+periodo si scelga. Se aggiungi un'altra categoria con storico, ricordati di farla passare dallo
+stesso parametro `da`, altrimenti il selettore mente su cosa sta davvero filtrando.
 
 **Storia della libreria, non ripetere il giro**: primo tentativo `xlsx` (SheetJS) — due
 vulnerabilità **ALTE** su npm senza correzione disponibile (prototype pollution, ReDoS), installata
@@ -447,6 +452,17 @@ non dopo: è il motivo per cui questa sezione esiste. `exceljs` pesa molto (~270
 il chunk più grosso del progetto) ma è caricato solo con `import()` dinamico al click del
 pulsante — stesso pattern di `jszip`, chi non esporta non lo scarica mai, il bundle iniziale non
 cresce quasi per niente.
+
+Fatto: **titoli di `Section` sempre leggibili, foto o no** (`components/ui.jsx`) — il `<h2>` del
+titolo ha ora uno sfondo `bg-white/90` con angoli arrotondati, stessa ricetta delle etichette dei
+gruppi muscolari in Allenamento.jsx. Motivo: `SfondoFoto`/`IntestazioneFoto` è `position: fixed`,
+quindi la foto resta dietro a tutta la pagina mentre scorri, non solo vicino al titolo grande in
+cima — un `<h2>` col solo colore `ink` di default (vicinissimo al colore della sfumatura scura
+sopra la foto) sopra certe zone della foto era poco leggibile. Corretto **nel componente
+condiviso**, non pagina per pagina: tutti i titoli di sezione dell'app (photo o pagine "piatte"
+con `accent`) sono cambiati in un colpo solo. Su una pagina con `accent`, il pallino bianco copre
+quasi del tutto la sfumatura decorativa dietro al titolo (resta visibile solo ai bordi) — è un
+effetto voluto, non un difetto: prima la leggibilità.
 
 ## Cose da non fare
 

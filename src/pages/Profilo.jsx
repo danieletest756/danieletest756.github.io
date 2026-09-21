@@ -13,6 +13,7 @@ export default function Profilo() {
   const [form, setForm] = useState(null)
   const [busy, setBusy] = useState(false)
   const [esportando, setEsportando] = useState(false)
+  const [rangeExport, setRangeExport] = useState('tutto')   // 'tutto' | '7' | '30' | '90'
   const [appuntamenti, setAppuntamenti] = useState([])
   const [nuovoApp, setNuovoApp] = useState(false)
   const toast = useToast()
@@ -21,11 +22,18 @@ export default function Profilo() {
   async function esportaDati() {
     setEsportando(true)
     try {
-      const file = await esportaDatiAtleta(targetId)
+      let da = null
+      if (rangeExport !== 'tutto') {
+        const soglia = new Date()
+        soglia.setDate(soglia.getDate() - Number(rangeExport))
+        da = soglia.toISOString().slice(0, 10)
+      }
+      const file = await esportaDatiAtleta(targetId, da)
       const url = URL.createObjectURL(file)
       const a = document.createElement('a')
+      const suffisso = rangeExport === 'tutto' ? 'tutto' : `ultimi-${rangeExport}gg`
       a.href = url
-      a.download = `dati-${(form.full_name || form.email || 'atleta').replace(/[^\w-]+/g, '_')}.xlsx`
+      a.download = `dati-${(form.full_name || form.email || 'atleta').replace(/[^\w-]+/g, '_')}-${suffisso}.xlsx`
       a.click()
       URL.revokeObjectURL(url)
       toast.ok('Dati esportati')
@@ -151,6 +159,7 @@ export default function Profilo() {
       {(appuntamenti.length > 0 || canEdit) && (
         <Section
           title="Prossimi appuntamenti"
+          bianco
           action={canEdit && (
             <button onClick={() => setNuovoApp(true)} className="btn-ghost px-3 py-2 text-sm">
               <IconPlus width={16} height={16} /> Nuovo
@@ -206,19 +215,38 @@ export default function Profilo() {
         />
       )}
 
-      <Section title="Esporta dati">
-        <button onClick={esportaDati} disabled={esportando} className="btn-ghost w-full">
-          {esportando
-            ? 'Preparo il file…'
-            : <><IconDownload width={16} height={16} /> Scarica tutti i dati (Excel)</>}
-        </button>
-        <p className="mt-2 text-[12px] text-muted">
-          Scheda, storico carichi, misurazioni, check-in e obiettivi — non la dieta. Un foglio per
-          categoria nello stesso file .xlsx.
-        </p>
+      <Section title="Esporta dati" bianco>
+        <div className="card p-5">
+          <p className="label mb-1.5">Periodo (storico carichi, misurazioni, check-in)</p>
+          <div className="mb-3 flex gap-2">
+            {[
+              { v: '7', l: '7 gg' }, { v: '30', l: '30 gg' }, { v: '90', l: '90 gg' }, { v: 'tutto', l: 'Tutto' },
+            ].map(({ v, l }) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setRangeExport(v)}
+                className={`flex-1 rounded-xl border px-2 py-2 text-[13px] font-medium ${
+                  rangeExport === v ? 'border-brand bg-brandsoft text-brand' : 'border-line text-muted'
+                }`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+          <button onClick={esportaDati} disabled={esportando} className="btn-primary w-full">
+            {esportando
+              ? 'Preparo il file…'
+              : <><IconDownload width={16} height={16} /> Scarica i dati (Excel)</>}
+          </button>
+          <p className="mt-3 text-[12px] text-muted">
+            Scheda e obiettivi sono sempre completi (sono lo stato attuale, non uno storico). Non
+            la dieta. Un foglio per categoria nello stesso file .xlsx.
+          </p>
+        </div>
       </Section>
 
-      <Section title="Account">
+      <Section title="Account" bianco>
         <div className="card divide-y divide-line">
           <Riga k="Email" v={form.email} />
           <Riga k="Ruolo" v={form.role === 'god' ? 'Coach' : 'Atleta'} />
