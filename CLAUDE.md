@@ -36,6 +36,7 @@ src/
   lib/obiettivoCorpo.js   decide se una variazione di misura è un progresso, in base all'obiettivo
   lib/importaScheda.js    crea una scheda intera (giorni+esercizi) da un oggetto dati, scrive su Supabase
   lib/leggiSchedaTesto.js legge il formato a righe semplici e lo trasforma in quell'oggetto dati
+  lib/esportaDatiAtleta.js scheda+carichi+misure+check-in+obiettivi in un .xlsx (exceljs, non dieta)
   components/Layout.jsx   intestazione + barra di navigazione inferiore
   components/ui.jsx       icone SVG inline, Modal, Field, Section, Empty, Spinner
   components/Feedback.jsx notifiche a scomparsa e finestre di conferma
@@ -47,7 +48,7 @@ src/
   pages/Dieta.jsx         macro obiettivo, giorni, pasti, alimenti, diario dei pasti consumati
   pages/Misure.jsx        storico, differenze, grafico peso, foto
   pages/Progressi.jsx     obiettivi, aderenza, stat, grafici (peso, misure, check-in, carichi), record, foto
-  pages/Profilo.jsx       dati personali + note private del coach
+  pages/Profilo.jsx       dati personali, note private del coach, agenda, esporta dati (zip csv)
   pages/Segnalazioni.jsx  bug/migliorie segnalati da chi usa l'app     (tab "Feedback")
   pages/Atleti.jsx        elenco atleti, ruoli, copia scheda, avvisi, agenda   (solo coach)
   pages/Esercizi.jsx      libreria con immagini e video        (solo coach)
@@ -429,10 +430,35 @@ condivisa, cambiato solo cosa la alimenta. **Il piano alimentare non ha ancora u
 per la dieta resta solo la via SQL (`scheda_dieta_template.sql`); se un domani serve anche lì, lo
 stesso pattern si ripete quasi identico.
 
+Fatto: **esportare tutti i dati di un atleta** (`lib/esportaDatiAtleta.js`, sezione "Esporta dati"
+in Profilo.jsx, per tutti — non solo `canEdit`, è solo lettura) — scheda attiva, storico carichi,
+misurazioni, check-in e obiettivi (**non la dieta**, per scelta), un vero `.xlsx` con un foglio per
+categoria: intestazioni in grassetto, colonne dimensionate, numeri/date come tali, non testo.
+
+**Storia della libreria, non ripetere il giro**: primo tentativo `xlsx` (SheetJS) — due
+vulnerabilità **ALTE** su npm senza correzione disponibile (prototype pollution, ReDoS), installata
+e disinstallata nella stessa sessione senza mai scriverci codice sopra. Secondo tentativo (in uso
+ora): **`exceljs`** — una vulnerabilità **moderata** in una dipendenza interna (`uuid`, un
+controllo mancante quando si passa un buffer personalizzato): qui non ci passa mai un buffer
+esterno, generiamo solo un file da dati nostri, nessun input da parsare — rischio giudicato
+accettabile e confermato con l'utente prima di procedere (non una scelta presa da sola). Se in
+futuro cambi ancora libreria, **controlla `npm audit` prima di scrivere qualsiasi cosa che la usi**,
+non dopo: è il motivo per cui questa sezione esiste. `exceljs` pesa molto (~270 kB gzip da solo,
+il chunk più grosso del progetto) ma è caricato solo con `import()` dinamico al click del
+pulsante — stesso pattern di `jszip`, chi non esporta non lo scarica mai, il bundle iniziale non
+cresce quasi per niente.
+
 ## Cose da non fare
 
 - Non aggiungere TypeScript o cambiare build tool senza chiedere.
 - Non spostare la logica dei permessi nel frontend "per semplicità".
-- Non introdurre dipendenze pesanti: il bundle iniziale sta a ~129 kB gzip e va tenuto basso,
-  gli atleti aprono l'app in palestra con la connessione che capita. `recharts` è già caricato
-  in lazy loading solo su Misure e Progressi (via `GraficoAndamento.jsx`): mantieni quel pattern.
+- Non introdurre dipendenze pesanti: il bundle iniziale sta a ~135 kB gzip e va tenuto basso,
+  gli atleti aprono l'app in palestra con la connessione che capita. `recharts` (Misure/Progressi,
+  via `GraficoAndamento.jsx`), `jszip` (export foto) ed `exceljs` (export dati, ~270 kB gzip da
+  solo) sono già caricati in lazy loading, solo dove servono: mantieni quel pattern, non importarli
+  in cima a un file — solo dentro la funzione che li usa, con `import()` dinamico.
+- **Prima di aggiungere una libreria per generare/leggere un formato di file (xlsx, pdf, docx...),
+  lancia `npm audit` DOPO averla installata e PRIMA di scriverci codice sopra.** È già capitato in
+  questo progetto (vedi "esportare tutti i dati di un atleta" più sotto): la prima scelta ovvia per
+  generare `.xlsx`, `xlsx`/SheetJS, aveva due vulnerabilità alte senza correzione disponibile —
+  scoperto solo grazie ad `audit`, non perché fosse prevedibile in anticipo.

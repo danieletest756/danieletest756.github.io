@@ -5,16 +5,36 @@ import { Section, Empty, Modal, Field, Spinner, IconDownload, IconPlus, IconTras
 import { useToast, useConfirm } from '../components/Feedback'
 import IntestazioneFoto from '../components/IntestazioneFoto'
 import { scaricaICS } from '../lib/ics'
+import { esportaDatiAtleta } from '../lib/esportaDatiAtleta'
 import fotoProfilo from '../assets/bg/profilo.jpg'
 
 export default function Profilo() {
   const { target, targetId, isGod, canEdit, viewing, signOut, refreshProfile } = useAuth()
   const [form, setForm] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [esportando, setEsportando] = useState(false)
   const [appuntamenti, setAppuntamenti] = useState([])
   const [nuovoApp, setNuovoApp] = useState(false)
   const toast = useToast()
   const chiedi = useConfirm()
+
+  async function esportaDati() {
+    setEsportando(true)
+    try {
+      const file = await esportaDatiAtleta(targetId)
+      const url = URL.createObjectURL(file)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `dati-${(form.full_name || form.email || 'atleta').replace(/[^\w-]+/g, '_')}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.ok('Dati esportati')
+    } catch (err) {
+      toast.err(err)
+    } finally {
+      setEsportando(false)
+    }
+  }
 
   useEffect(() => { setForm(target ? { ...target } : null) }, [target])
 
@@ -185,6 +205,18 @@ export default function Profilo() {
           onSalvato={() => { setNuovoApp(false); caricaAgenda() }}
         />
       )}
+
+      <Section title="Esporta dati">
+        <button onClick={esportaDati} disabled={esportando} className="btn-ghost w-full">
+          {esportando
+            ? 'Preparo il file…'
+            : <><IconDownload width={16} height={16} /> Scarica tutti i dati (Excel)</>}
+        </button>
+        <p className="mt-2 text-[12px] text-muted">
+          Scheda, storico carichi, misurazioni, check-in e obiettivi — non la dieta. Un foglio per
+          categoria nello stesso file .xlsx.
+        </p>
+      </Section>
 
       <Section title="Account">
         <div className="card divide-y divide-line">
